@@ -25,7 +25,7 @@ if my_file.is_file():
 else:
     "creation nouveau neural network"
     model = Sequential()
-    model.add(Dense(input_dim=5, units=3))
+    model.add(Dense(input_dim=5, output_dim=3))
     model.add(Dense(50, activation='relu'))
     model.add(Dense(50, activation='relu'))
     model.add(Dense(3))
@@ -42,7 +42,7 @@ BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 EXP = []
-EPS = [0.8, 0.0025]
+EPS = [0.8, 0.05]
 FOUND=[0]
 LOST=[0]
 COMPTEUR = [0]
@@ -75,7 +75,8 @@ def rand_color():
 # "['case qui tue','case vide','case pomme']  = [0,1,2]
 def code_etat(position, voisins, food, spots):
     s = ""
-
+    #print("Je suis en " + str(position))
+    #print("Mes voisins sont : " + str(voisins))
     # ecart selon les x
     s += str(position[0] - food[0]) + "_"
 
@@ -94,6 +95,7 @@ def code_etat(position, voisins, food, spots):
                 s += "0"
             else:
                 s += "2"
+   #print("Mon état est donc " +str(s))
     return s
 
 "'CREATION CLASSE SNAKE"
@@ -141,9 +143,9 @@ class Snake(object):
 
     "RETOURNE LA LISTE [voisin gauche, voisin devant, voisin droite]"
 
-    def voisins(self):
-        i = self.deque[self.deque.__len__() - 1][0]
-        j = self.deque[self.deque.__len__() - 1][1]
+    def voisins(self, head):
+        i = head[0]
+        j = head[1]
         V = []
 
         if (self.direction == DIRECTIONS.Up):
@@ -491,14 +493,13 @@ def is_food(board, point):
 
 
 def end_cond(etat, action):
-    if etat[len(etat) - 3] == '0' and action == '0':
-        return False
-    if etat[len(etat) - 2] == '0' and action == '1':
-        return False
-    if etat[len(etat) - 1] == '0' and action == '2':
-        return False
-    return True
-
+    if etat[len(etat) - 3] == '0' and action == 0:
+        return True
+    if etat[len(etat) - 2] == '0' and action == 1:
+        return True
+    if etat[len(etat) - 1] == '0' and action == 2:
+        return True
+    return False
 
 def enregistrement(m):
     if COMPTEUR[0]==1000:
@@ -532,7 +533,8 @@ def one_player(screen):
     spots[0][0] = 1
     food = find_food(spots)
     snake = Snake()
-    snake.state = code_etat(snake.deque[snake.deque.__len__() - 1], snake.voisins(), food, spots)
+    currentHead = snake.deque[snake.deque.__len__() - 1]
+    snake.state = code_etat(currentHead, snake.voisins(currentHead), food, spots)
     #snake.rewardMatrix = snake.initializeRewardMatrix(food)
 
     while True:
@@ -561,7 +563,7 @@ def one_player(screen):
 
         next_head = move(snake)
         snake.populate_nextDir(events, "arrows")
-        snake.state = code_etat(next_head, snake.voisins(), food, spots)
+        snake.state = code_etat(next_head, snake.voisins(next_head), food, spots)
 
         #new_state = snake.state
 
@@ -600,9 +602,10 @@ def one_player(screen):
                 temp2 = model.predict(np.array([[sample3split[0], sample3split[1],
                                                  sample3[lenSample3 - 3], sample3[lenSample3 - 2],
                                                  sample3[lenSample3 - 1]]]))
-               # print(Qmodif)
+                #print(Qmodif)
                 if end_cond(sample0, sample1):
                     Qmodif[0][sample1] = np.array([[ALPHA * sample2]])
+                   #☺ print("pp")
                     # Q[sample0][sample1] = Q[sample0][sample1] + 0.6*sample2
                     # model.fit(np.array([[sample0split[0], sample0split[1], sample0[lenSample0-3], sample0[lenSample0-2], sample0[lenSample0-1]]]), Qmodif, verbose = 0)
 
@@ -612,11 +615,10 @@ def one_player(screen):
                     # Q[sample0][sample1] = Q[sample0][sample1] + 0.6*(sample2 + 0.9*max(Q[sample3]) - Q[sample0][sample1])
                 x_train.append(oldState4Keras)
                 y_train.append([Qmodif[0][0], Qmodif[0][1], Qmodif[0][2]])
-#                print("L'état est " + str(sample0))
-#                print("L'état suivant est " + str(sample3))
-#                print("La direction choisie est " + str(sample1))
-#                print("La récompense est " + str(sample2))
-#                print(Qmodif)
+     #           print("L'état est " + str(sample0)+" La direction choisie est " + str(sample1))
+     #           print("L'état suivant est " + str(sample3))
+     #           print("La récompense est " + str(sample2))
+     #           print(Qmodif)
 
             model.fit(np.array(x_train), np.array(y_train), verbose=0)
         "PRISE DE DECISION"
