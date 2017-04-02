@@ -1,6 +1,7 @@
 "REMARQUES GENERALES : VARIABLES"
 # la matrice coord == le corps du Snake
 # la matrice spots == la plateau de jeu
+from keras.optimizers import Adam
 
 "Importation modules utiles"
 from collections import deque, namedtuple
@@ -25,12 +26,11 @@ if my_file.is_file():
 else:
     "creation nouveau neural network"
     model = Sequential()
-    model.add(Dense(input_dim=5, output_dim=3))
-    model.add(Dense(50, activation='relu'))
-    model.add(Dense(50, activation='relu'))
+    model.add(Dense(input_dim=5, units=3))
+    model.add(Dense(3, activation='relu'))
     model.add(Dense(3))
-
-model.compile(loss='mse', optimizer='adam')
+optimizer=Adam(lr=0.1)
+model.compile(loss='mse', optimizer=optimizer)
 
 'DEF DES CARACTERISTIQUES DU JEU'
 # vitesse du Snake
@@ -42,13 +42,14 @@ BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 EXP = []
-EPS = [0.8, 0.05]
+EPS = [0.5, 0.05]
 FOUND=[0]
 LOST=[0]
 COMPTEUR = [0]
-
-ALPHA=0.6
-GAMMA=0.9
+LOSS=[0]
+LOSSRATE=[0]
+ALPHA=0.1
+GAMMA=0.3
 DIRECTIONS = namedtuple('DIRECTIONS',
                         ['Up', 'Down', 'Left', 'Right'])(0, 1, 2, 3)
 
@@ -105,7 +106,7 @@ def code_etat(position, voisins, food, spots):
 # remarque : deque == type d'objet (en gros une liste chainee)
 
 class Snake(object):
-    def __init__(self, direction=DIRECTIONS.Right, point=(16, 16, rand_color()), color=None):
+    def __init__(self, direction=DIRECTIONS.Right, point=(16, 16, BLUE), color=None):
         # taille max sachant nb popommes mangees
         self.tailmax = 4
 
@@ -118,7 +119,7 @@ class Snake(object):
         self.deque.append(point)
 
         # couleur (obviously)
-        self.color = color
+        self.color = BLUE
 
         # prochaine direction (je sais pas pourquoi il faut un deque et pas juste unelement ici en vrai)
         self.nextDir = deque()
@@ -136,10 +137,7 @@ class Snake(object):
         self.Q = np.array([[0, 0, 0]])
 
     def get_color(self):
-        if self.color is None:
-            return rand_color()
-        else:
-            return self.color
+        return BLUE
 
     "RETOURNE LA LISTE [voisin gauche, voisin devant, voisin droite]"
 
@@ -227,52 +225,10 @@ class Snake(object):
                 return 0
             elif self.Q.argmax() == 1:
                 self.nextDir.appendleft(self.trad_direction(1))
-                # print(self.trad_direction(1))
                 return 1
             else:
                 self.nextDir.appendleft(self.trad_direction(2))
-                # print(self.trad_direction(2))
                 return 2
-
-                #        "Code pour controle via fleches"
-                #        if (identifier == "arrows"):
-                #            for event in events:
-                #                if event.type == pygame.KEYDOWN:
-                #                    if event.key == pygame.K_UP:
-                #                        self.nextDir.appendleft(DIRECTIONS.Up)
-                #                    elif event.key == pygame.K_DOWN:
-                #                        self.nextDir.appendleft(DIRECTIONS.Down)
-                #                    elif event.key == pygame.K_RIGHT:
-                #                        self.nextDir.appendleft(DIRECTIONS.Right)
-                #                    elif event.key == pygame.K_LEFT:
-                #                        self.nextDir.appendleft(DIRECTIONS.Left)
-
-        "Code pour controle via clavier (si 2 joueurs)"
-
-    #        if (identifier == "wasd"):
-    #            for event in events:
-    #                if event.type == pygame.KEYDOWN:
-    #                    if event.key == pygame.K_z:
-    #                        self.nextDir.appendleft(DIRECTIONS.Up)
-    #                    elif event.key == pygame.K_s:
-    #                        self.nextDir.appendleft(DIRECTIONS.Down)
-    #                    elif event.key == pygame.K_d:
-    #                        self.nextDir.appendleft(DIRECTIONS.Right)
-    #                    elif event.key == pygame.K_q:
-    #                        self.nextDir.appendleft(DIRECTIONS.Left)
-
-#    def initializeRewardMatrix(self, food):
-#        for i in range(BOARD_LENGTH + 2):
-#            for j in range(BOARD_LENGTH + 2):
-#                if i == 0 or i == BOARD_LENGTH + 1 or j == 0 or j == BOARD_LENGTH + 1:
-#                    self.rewardMatrix[i].append(-20)
-#                else:
-#                    self.rewardMatrix[i].append(-1)
-#
-#        self.rewardMatrix[food[0]][food[1]] = 50
-#        for coord in self.deque:
-#            self.rewardMatrix[coord[0]][coord[1]] = -20
-#        return self.rewardMatrix
 
 
 'FONCTION PLACANT LA POPOMME'
@@ -328,7 +284,6 @@ def get_reward(old_state, directionRelative):
 
 def update_board(screen, snakes, food):
     rect = pygame.Rect(0, 0, OFFSET, OFFSET)
-  #  snakes[0].rewardMatrix = snakes[0].initializeRewardMatrix(food)
 
     # redef du tableau de jeu case par case
     spots = [[] for i in range(BOARD_LENGTH)]
@@ -346,7 +301,7 @@ def update_board(screen, snakes, food):
     spots[food[0]][food[1]] = 2
 
     temprect = rect.move(food[1] * OFFSET, food[0] * OFFSET)
-    pygame.draw.rect(screen, rand_color(), temprect)
+    pygame.draw.rect(screen, RED, temprect)
 
     # ca renseigne ou qu il est le snake
     for snake in snakes:
@@ -509,11 +464,8 @@ def enregistrement(m):
         # serialize weights to HDF5
         m.save_weights("model.h5")
         COMPTEUR[0]=0
-        print("Victoire : "
-              + str(FOUND[0])
-              + " Défaites : " + str(LOST[0]) + " Ratio : " + str(FOUND[0] / (LOST[0] + 1))
-              + " EPS : "
-              + str(EPS[0]))
+        print("Victoire : "+ str(FOUND[0])+ " Défaites : " + str(LOST[0]) + " Ratio : " + str(FOUND[0] / (LOST[0] + 1))
+              + " EPS : "+ str(EPS[0])+" LOSS : " + str(LOSS[0])+ " LOSSRATE : "+ str(LOSSRATE[0]))
         LOST[0] = 0
         FOUND[0] = 0
 
@@ -550,10 +502,8 @@ def one_player(screen):
         if done:
             return False
 
-        # print(snake.trad_direction(snake.direction))
 
         "Game logic"
-        # head = snake.deque[snake.deque.__len__() - 1]
         old_state = snake.state
         lenOldState=len(old_state)
         oldStateSplit = old_state.split("_")
@@ -576,7 +526,7 @@ def one_player(screen):
 
         lenExpMax = 30000
         if (len(snake.experience) > lenExpMax):
-            del(snake.experience[random.randrange(0, lenExpMax)])
+            snake.experience.pop(random.randrange(lenExpMax))
         batch = 32
 
         lenExp = len(snake.experience)
@@ -585,7 +535,7 @@ def one_player(screen):
             y_train = []
 
             for i in range(batch):
-                sample = snake.experience[random.randrange(0, lenExp)]
+                sample = random.choice(snake.experience)
                 sample0 = sample[0]
                 sample1 = sample[1]
                 sample2 = sample[2]
@@ -604,15 +554,10 @@ def one_player(screen):
                                                  sample3[lenSample3 - 1]]]))
                 #print(Qmodif)
                 if end_cond(sample0, sample1):
-                    Qmodif[0][sample1] = np.array([[ALPHA * sample2]])
-                   #☺ print("pp")
-                    # Q[sample0][sample1] = Q[sample0][sample1] + 0.6*sample2
-                    # model.fit(np.array([[sample0split[0], sample0split[1], sample0[lenSample0-3], sample0[lenSample0-2], sample0[lenSample0-1]]]), Qmodif, verbose = 0)
-
+                    Qmodif[0][sample1] = np.array([[sample2]])
                 else:
                     Qmodif[0][sample1] = np.array(
-                        [[Qmodif[0][sample1] + ALPHA * sample2 + GAMMA * (temp2.max() - Qmodif[0][sample1])]])
-                    # Q[sample0][sample1] = Q[sample0][sample1] + 0.6*(sample2 + 0.9*max(Q[sample3]) - Q[sample0][sample1])
+                        [[Qmodif[0][sample1] + sample2 + GAMMA * (temp2.max() - Qmodif[0][sample1])]])
                 x_train.append(oldState4Keras)
                 y_train.append([Qmodif[0][0], Qmodif[0][1], Qmodif[0][2]])
      #           print("L'état est " + str(sample0)+" La direction choisie est " + str(sample1))
@@ -620,7 +565,9 @@ def one_player(screen):
      #           print("La récompense est " + str(sample2))
      #           print(Qmodif)
 
-            model.fit(np.array(x_train), np.array(y_train), verbose=0)
+            loss = model.train_on_batch(np.array(x_train), np.array(y_train))
+            LOSSRATE[0]=LOSS[0]-loss
+            LOSS[0]=loss
         "PRISE DE DECISION"
         if (end_condition(spots, next_head)):
             LOST[0]+=1
