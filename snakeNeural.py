@@ -26,14 +26,16 @@ if my_file.is_file():
 else:
     "creation nouveau neural network"
     model = Sequential()
-    model.add(Dense(input_dim=5, units=3))
+    model.add(Dense(input_dim=5, output_dim=3))
     model.add(Dense(3, activation='relu'))
     model.add(Dense(3))
 optimizer=Adam(lr=0.1)
 model.compile(loss='mse', optimizer=optimizer)
 
-'DEF DES CARACTERISTIQUES DU JEU'
+'DEF DES CARACTERISTIQ' \
+'UES DU JEU'
 # vitesse du Snake
+IHM=True
 speed = 7500
 BOARD_LENGTH = 32
 OFFSET = 16
@@ -49,7 +51,7 @@ COMPTEUR = [0]
 LOSS=[0]
 LOSSRATE=[0]
 ALPHA=0.1
-GAMMA=0.9 
+GAMMA=0.9
 DIRECTIONS = namedtuple('DIRECTIONS',
                         ['Up', 'Down', 'Left', 'Right'])(0, 1, 2, 3)
 
@@ -258,11 +260,8 @@ def end_condition(board, coord):
 
 # l aire de jeu est representee par la liste de liste spots
 def make_board():
-    spots = [[] for i in range(BOARD_LENGTH)]
-    for row in spots:
-        for i in range(BOARD_LENGTH):
-            row.append(0)
-    return spots
+
+    return [[0 for i in range(BOARD_LENGTH)] for i in range(BOARD_LENGTH)]
 
 "FONCTION RETOURNANT LA RECOMPENSE POUR UNE ACTION"
 
@@ -283,32 +282,43 @@ def get_reward(old_state, directionRelative):
 "MAJ DU TABLEAU DE JEU"
 
 def update_board(screen, snakes, food):
-    rect = pygame.Rect(0, 0, OFFSET, OFFSET)
+    if IHM:
+        rect = pygame.Rect(0, 0, OFFSET, OFFSET)
 
-    # redef du tableau de jeu case par case
-    spots = [[] for i in range(BOARD_LENGTH)]
-    num1 = 0
-    num2 = 0
-    for row in spots:
-        for i in range(BOARD_LENGTH):
-            row.append(0)
-            temprect = rect.move(num1 * OFFSET, num2 * OFFSET)
-            pygame.draw.rect(screen, BLACK, temprect)
-            num2 += 1
-        num1 += 1
+        # redef du tableau de jeu case par case
+        spots = [[] for i in range(BOARD_LENGTH)]
+        num1 = 0
+        num2 = 0
+        for row in spots:
+            for i in range(BOARD_LENGTH):
+                row.append(0)
+                temprect = rect.move(num1 * OFFSET, num2 * OFFSET)
+                pygame.draw.rect(screen, BLACK, temprect)
+                num2 += 1
+            num1 += 1
 
-    # ca place la popomme
-    spots[food[0]][food[1]] = 2
+        # ca place la popomme
+        spots[food[0]][food[1]] = 2
 
-    temprect = rect.move(food[1] * OFFSET, food[0] * OFFSET)
-    pygame.draw.rect(screen, RED, temprect)
+        temprect = rect.move(food[1] * OFFSET, food[0] * OFFSET)
+        pygame.draw.rect(screen, RED, temprect)
 
-    # ca renseigne ou qu il est le snake
-    for snake in snakes:
-        for coord in snake.deque:
-            spots[coord[0]][coord[1]] = 1
-            temprect = rect.move(coord[1] * OFFSET, coord[0] * OFFSET)
-            pygame.draw.rect(screen, coord[2], temprect)
+        # ca renseigne ou qu il est le snake
+        for snake in snakes:
+            for coord in snake.deque:
+                spots[coord[0]][coord[1]] = 1
+                temprect = rect.move(coord[1] * OFFSET, coord[0] * OFFSET)
+                pygame.draw.rect(screen, coord[2], temprect)
+    else:
+        spots = make_board()
+
+        # ca place la popomme
+        spots[food[0]][food[1]] = 2
+
+        # ca renseigne ou qu il est le snake
+        for snake in snakes:
+            for coord in snake.deque:
+                spots[coord[0]][coord[1]] = 1
     return spots
 
 
@@ -456,20 +466,18 @@ def end_cond(etat, action):
         return True
     return False
 
-def enregistrement(m):
-    if COMPTEUR[0]==1000:
-        model_json = m.to_json()
-        with open("model.json", "w") as json_file:
-            json_file.write(model_json)
-        # serialize weights to HDF5
-        m.save_weights("model.h5")
-        COMPTEUR[0]=0
-        print("Victoire : "+ str(FOUND[0])+ " Défaites : " + str(LOST[0]) + " Ratio : " + str(FOUND[0] / (LOST[0] + 1))
-              + " EPS : "+ str(EPS[0])+" LOSS : " + str(LOSS[0])+ " LOSSRATE : "+ str(LOSSRATE[0]))
-        LOST[0] = 0
-        FOUND[0] = 0
 
-    else: COMPTEUR[0]+=1
+def enregistrement(m):
+    model_json = m.to_json()
+    with open("model.json", "w") as json_file:
+        json_file.write(model_json)
+    # serialize weights to HDF5
+    m.save_weights("model.h5")
+    COMPTEUR[0] = 0
+    print("Victoire : " + str(FOUND[0]) + " Défaites : " + str(LOST[0]) + " Ratio : " + str(FOUND[0] / (LOST[0] + 1))
+          + " EPS : " + str(EPS[0]) + " LOSS : " + str(LOSS[0]))
+    LOST[0] = 0
+    FOUND[0] = 0
 
 
 "VERSION UN JOUEUR"
@@ -481,8 +489,7 @@ def one_player(screen):
     clock = pygame.time.Clock()
     spots = make_board()
 
-    # Board set up
-    spots[0][0] = 1
+
     food = find_food(spots)
     snake = Snake()
     currentHead = snake.deque[snake.deque.__len__() - 1]
@@ -527,54 +534,59 @@ def one_player(screen):
         lenExpMax = 30000
         if (len(snake.experience) > lenExpMax):
             snake.experience.pop(random.randrange(lenExpMax))
-        batch = 32
+        if(COMPTEUR[0]==10000):
+            batch = 32
+            x_train=[]
+            y_train=[]
+            lenExp = len(snake.experience)
+            if (lenExp >= batch):
 
-        lenExp = len(snake.experience)
-        if(lenExp>=batch):
-            x_train = []
-            y_train = []
+                for i in range(32000):
+                    sample = random.choice(snake.experience)
+                    sample0 = sample[0]
+                    sample1 = sample[1]
+                    sample2 = sample[2]
+                    sample3 = sample[3]
+                    lenSample0 = len(sample0)
+                    lenSample3 = len(sample3)
 
-            for i in range(batch):
-                sample = random.choice(snake.experience)
-                sample0 = sample[0]
-                sample1 = sample[1]
-                sample2 = sample[2]
-                sample3 = sample[3]
-                lenSample0 = len(sample0)
-                lenSample3 = len(sample3)
+                    sample0split = sample[0].split("_")
+                    sample3split = sample[3].split("_")
+                    oldState4Keras = [sample0split[0], sample0split[1],
+                                      sample0[lenSample0 - 3], sample0[lenSample0 - 2],
+                                      sample0[lenSample0 - 1]]
+                    Qmodif = model.predict(np.array([oldState4Keras]))
+                    temp2 = model.predict(np.array([[sample3split[0], sample3split[1],
+                                                     sample3[lenSample3 - 3], sample3[lenSample3 - 2],
+                                                     sample3[lenSample3 - 1]]]))
+                    #print(Qmodif)
+                    if end_cond(sample0, sample1):
+                        Qmodif[0][sample1] = np.array([[sample2]])
+                    else:
+                        Qmodif[0][sample1] = np.array(
+                            [[Qmodif[0][sample1] + sample2 + GAMMA * (temp2.max() - Qmodif[0][sample1])]])
+                    x_train.append(oldState4Keras)
+                    y_train.append([Qmodif[0][0], Qmodif[0][1], Qmodif[0][2]])
+                    #print("L'état est " + str(sample0)+" La direction choisie est " + str(sample1))
+                    #print("L'état suivant est " + str(sample3))
+                    #print("La récompense est " + str(sample2))
+                    #print(Qmodif)
 
-                sample0split = sample[0].split("_")
-                sample3split = sample[3].split("_")
-                oldState4Keras=[sample0split[0], sample0split[1],
-                                                  sample0[lenSample0 - 3], sample0[lenSample0 - 2],
-                                                  sample0[lenSample0 - 1]]
-                Qmodif = model.predict(np.array([oldState4Keras]))
-                temp2 = model.predict(np.array([[sample3split[0], sample3split[1],
-                                                 sample3[lenSample3 - 3], sample3[lenSample3 - 2],
-                                                 sample3[lenSample3 - 1]]]))
-                #print(Qmodif)
-                if end_cond(sample0, sample1):
-                    Qmodif[0][sample1] = np.array([[sample2]])
-                else:
-                    Qmodif[0][sample1] = np.array(
-                        [[Qmodif[0][sample1] + sample2 + GAMMA * (temp2.max() - Qmodif[0][sample1])]])
-                x_train.append(oldState4Keras)
-                y_train.append([Qmodif[0][0], Qmodif[0][1], Qmodif[0][2]])
-     #           print("L'état est " + str(sample0)+" La direction choisie est " + str(sample1))
-     #           print("L'état suivant est " + str(sample3))
-     #           print("La récompense est " + str(sample2))
-     #           print(Qmodif)
+            history = model.fit(np.array(x_train), np.array(y_train), nb_epoch=10, batch_size=32, verbose =0)
+            loss=np.mean(history.history['loss'])
 
-            loss = model.train_on_batch(np.array(x_train), np.array(y_train))
-            LOSSRATE[0]=LOSS[0]-loss
             LOSS[0]=loss
+
+            enregistrement(model)
+        else:
+            COMPTEUR[0]+=1
         "PRISE DE DECISION"
         if (end_condition(spots, next_head)):
             LOST[0]+=1
             return snake.tailmax
 
 
-        enregistrement(model)
+
 
         if is_food(spots, next_head):
             FOUND[0]+=1
@@ -587,11 +599,14 @@ def one_player(screen):
             snake.deque.popleft()
 
         # Draw code
-        screen.fill(BLACK)  # makes screen black
+        if(IHM):
+            screen.fill(BLACK)  # makes screen black
 
-        spots = update_board(screen, [snake], food)
+            spots = update_board(screen, [snake], food)
 
-        pygame.display.update()
+            pygame.display.update()
+        else:
+            spots = update_board(screen, [snake], food)
 
 
 "VERSIO DEUX JOUEURS (pour l instant osef)"
