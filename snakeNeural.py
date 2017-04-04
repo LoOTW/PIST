@@ -49,7 +49,7 @@ COMPTEUR = [0]
 LOSS=[0]
 LOSSRATE=[0]
 ALPHA=0.1
-GAMMA=0.3
+GAMMA=0.9 
 DIRECTIONS = namedtuple('DIRECTIONS',
                         ['Up', 'Down', 'Left', 'Right'])(0, 1, 2, 3)
 
