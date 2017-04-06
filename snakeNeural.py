@@ -1,6 +1,7 @@
 "REMARQUES GENERALES : VARIABLES"
 # la matrice coord == le corps du Snake
 # la matrice spots == la plateau de jeu
+import sys
 from keras.optimizers import Adam
 
 "Importation modules utiles"
@@ -27,7 +28,7 @@ else:
     "creation nouveau neural network"
     model = Sequential()
     model.add(Dense(input_dim=5, output_dim=3))
-    model.add(Dense(3, activation='relu'))
+    model.add(Dense(4, activation='relu'))
     model.add(Dense(3))
 optimizer=Adam(lr=0.1)
 model.compile(loss='mse', optimizer=optimizer)
@@ -35,8 +36,36 @@ model.compile(loss='mse', optimizer=optimizer)
 'DEF DES CARACTERISTIQ' \
 'UES DU JEU'
 # vitesse du Snake
-IHM=True
-speed = 7500
+
+#INPUTS DE TEST
+EPS = [0.8, 0.05]
+EPSSTEPS=0.00000055
+ALPHA=0.1
+GAMMA=0.9
+lenExpMax = 300000
+samplesSize = 32000
+batch = 32
+step=10000
+epochs=10
+
+#OUTPUTS DE TEST
+PASAVANTMORT=[]
+LOSSES=[]
+DEFEATS=[]
+VICTORIES=[]
+RATIOS=[]
+EPSILONS=[]
+
+#INTERMEDIAIRES DE CALCULS
+LOSS=[0]
+FOUND=[0]
+LOST=[0]
+PAS=[0]
+
+
+
+IHM=False
+speed = 5000
 BOARD_LENGTH = 32
 OFFSET = 16
 WHITE = (255, 255, 255)
@@ -44,14 +73,10 @@ BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 EXP = []
-EPS = [0.5, 0.05]
-FOUND=[0]
-LOST=[0]
+
 COMPTEUR = [0]
-LOSS=[0]
-LOSSRATE=[0]
-ALPHA=0.1
-GAMMA=0.9
+
+
 DIRECTIONS = namedtuple('DIRECTIONS',
                         ['Up', 'Down', 'Left', 'Right'])(0, 1, 2, 3)
 
@@ -215,7 +240,7 @@ class Snake(object):
         if tirage < EPS[0]:
             self.nextDir.appendleft(self.trad_direction(aleat))
             if EPS[0] > EPS[1]:
-                EPS[0] -=0.0000055
+                EPS[0] -=EPSSTEPS
 
             return aleat
 
@@ -468,16 +493,38 @@ def end_cond(etat, action):
 
 
 def enregistrement(m):
+
     model_json = m.to_json()
     with open("model.json", "w") as json_file:
         json_file.write(model_json)
     # serialize weights to HDF5
     m.save_weights("model.h5")
-    COMPTEUR[0] = 0
+
+    PASAVANTMORT.append(LOSS[0]/PAS[0])
+    LOSSES.append(LOSS[0])
+    VICTORIES.append(FOUND[0])
+    DEFEATS.append(LOST[0])
+    RATIOS.append(FOUND[0] / (LOST[0] + 1))
+    EPSILONS.append(EPS[0])
+
+
+
     print("Victoire : " + str(FOUND[0]) + " Défaites : " + str(LOST[0]) + " Ratio : " + str(FOUND[0] / (LOST[0] + 1))
-          + " EPS : " + str(EPS[0]) + " LOSS : " + str(LOSS[0]))
+          + " EPS : " + str(EPS[0]) + " LOSS : " + str(LOSS[0])+" ITERATIONS : "+str(COMPTEUR[0]/step))
+
+    saveOnDisk("loss", LOSSES)
+    saveOnDisk("epsilon",EPSILONS)
+    saveOnDisk("victoires",VICTORIES)
+    saveOnDisk("defaites", DEFEATS)
+    saveOnDisk("ratios",RATIOS)
+    saveOnDisk("pasAvantMort", PASAVANTMORT)
     LOST[0] = 0
     FOUND[0] = 0
+    PAS[0]=0
+
+def saveOnDisk(nomDuFichier, liste):
+    with open(nomDuFichier+".txt", "w") as file:
+        file.write(str(liste))
 
 
 "VERSION UN JOUEUR"
@@ -488,7 +535,6 @@ def enregistrement(m):
 def one_player(screen):
     clock = pygame.time.Clock()
     spots = make_board()
-
 
     food = find_food(spots)
     snake = Snake()
@@ -531,17 +577,18 @@ def one_player(screen):
         snake.experience.append(
             [old_state, directionRelative, recomp, snake.state])
 
-        lenExpMax = 30000
+
         if (len(snake.experience) > lenExpMax):
             snake.experience.pop(random.randrange(lenExpMax))
-        if(COMPTEUR[0]==10000):
-            batch = 32
+
+        PAS[0]+=1
+        if(COMPTEUR[0]%step==0 and COMPTEUR[0]!=0):
             x_train=[]
             y_train=[]
             lenExp = len(snake.experience)
             if (lenExp >= batch):
 
-                for i in range(32000):
+                for i in range(samplesSize):
                     sample = random.choice(snake.experience)
                     sample0 = sample[0]
                     sample1 = sample[1]
@@ -563,25 +610,31 @@ def one_player(screen):
                     if end_cond(sample0, sample1):
                         Qmodif[0][sample1] = np.array([[sample2]])
                     else:
-                        Qmodif[0][sample1] = np.array(
-                            [[Qmodif[0][sample1] + sample2 + GAMMA * (temp2.max() - Qmodif[0][sample1])]])
+                        Qmodif[0][sample1] = np.array(sample2 + GAMMA * temp2.max())
                     x_train.append(oldState4Keras)
                     y_train.append([Qmodif[0][0], Qmodif[0][1], Qmodif[0][2]])
+                    #print("on ajoute "+str(sample2 + GAMMA * (temp2.max() - Qmodif[0][sample1])))
                     #print("L'état est " + str(sample0)+" La direction choisie est " + str(sample1))
                     #print("L'état suivant est " + str(sample3))
                     #print("La récompense est " + str(sample2))
                     #print(Qmodif)
 
-            history = model.fit(np.array(x_train), np.array(y_train), nb_epoch=10, batch_size=32, verbose =0)
+            history = model.fit(np.array(x_train), np.array(y_train), nb_epoch=epochs, batch_size=batch, verbose =0)
             loss=np.mean(history.history['loss'])
 
             LOSS[0]=loss
 
             enregistrement(model)
-        else:
-            COMPTEUR[0]+=1
+
+            # ON ARRETE QUAND C BON
+            if(loss<1):
+                print("On a convergence !")
+                sys.exit
+
+        COMPTEUR[0]+=1
         "PRISE DE DECISION"
         if (end_condition(spots, next_head)):
+
             LOST[0]+=1
             return snake.tailmax
 
