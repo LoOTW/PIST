@@ -15,6 +15,22 @@ from keras.models import Sequential, model_from_json
 from keras.layers import Dense
 from pathlib import Path
 
+
+
+#INPUTS DE TEST
+step=10000
+END=500*step
+EPS = [0.8, 0.05]
+EPSSTEPS=(EPS[0]-EPS[1])/(END/2)
+ALPHA=0.1
+GAMMA=0.9
+lenExpMax = 300000
+samplesSize = 32000
+batch = 32
+epochs=10
+NB_NEURONES=4
+NB_COUCHES=1
+
 "Creation fichier enregistrement"
 my_file = Path("model.json")
 if my_file.is_file():
@@ -28,26 +44,16 @@ else:
     "creation nouveau neural network"
     model = Sequential()
     model.add(Dense(input_dim=5, output_dim=3))
-    model.add(Dense(4, activation='relu'))
+    for i in range(NB_COUCHES):
+        model.add(Dense(NB_NEURONES, activation='relu'))
     model.add(Dense(3))
-optimizer=Adam(lr=0.1)
+optimizer=Adam(lr=ALPHA)
 model.compile(loss='mse', optimizer=optimizer)
 
 'DEF DES CARACTERISTIQ' \
 'UES DU JEU'
 # vitesse du Snake
 
-#INPUTS DE TEST
-step=10000
-EPS = [0.8, 0.05]
-EPSSTEPS=(EPS[0]-EPS[1])/(250*step)
-ALPHA=0.1
-GAMMA=0.9
-lenExpMax = 300000
-samplesSize = 32000
-batch = 32
-epochs=10
-END=500*step
 
 #OUTPUTS DE TEST
 PASAVANTMORT=[]
