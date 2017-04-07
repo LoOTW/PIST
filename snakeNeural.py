@@ -1,11 +1,11 @@
 "REMARQUES GENERALES : VARIABLES"
 # la matrice coord == le corps du Snake
 # la matrice spots == la plateau de jeu
-import sys
 from keras.optimizers import Adam
 
 "Importation modules utiles"
 from collections import deque, namedtuple
+import os
 import random
 import pygame
 import socket
@@ -36,8 +36,36 @@ model.compile(loss='mse', optimizer=optimizer)
 'DEF DES CARACTERISTIQ' \
 'UES DU JEU'
 # vitesse du Snake
-LOSSFINAL=[]
-IHM=True
+
+#INPUTS DE TEST
+step=10000
+EPS = [0.8, 0.05]
+EPSSTEPS=(EPS[0]-EPS[1])/(250*step)
+ALPHA=0.1
+GAMMA=0.9
+lenExpMax = 300000
+samplesSize = 32000
+batch = 32
+epochs=10
+END=500*step
+
+#OUTPUTS DE TEST
+PASAVANTMORT=[]
+LOSSES=[]
+DEFEATS=[]
+VICTORIES=[]
+RATIOS=[]
+EPSILONS=[]
+
+#INTERMEDIAIRES DE CALCULS
+LOSS=[0]
+FOUND=[0]
+LOST=[0]
+PAS=[0]
+
+
+
+IHM=False
 speed = 5000
 BOARD_LENGTH = 32
 OFFSET = 16
@@ -46,14 +74,10 @@ BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 EXP = []
-EPS = [0.8, 0.05]
-FOUND=[0]
-LOST=[0]
+
 COMPTEUR = [0]
-LOSS=[0]
-LOSSRATE=[0]
-ALPHA=0.1
-GAMMA=0.9
+
+
 DIRECTIONS = namedtuple('DIRECTIONS',
                         ['Up', 'Down', 'Left', 'Right'])(0, 1, 2, 3)
 
@@ -213,11 +237,11 @@ class Snake(object):
         tirage = random.random()
 
         "Cas ou le serpent explore --> direction aleat"
+        if EPS[0] > EPS[1]:
+            EPS[0] -= EPSSTEPS
 
         if tirage < EPS[0]:
             self.nextDir.appendleft(self.trad_direction(aleat))
-            if EPS[0] > EPS[1]:
-                EPS[0] -=0.0000055
 
             return aleat
 
@@ -476,16 +500,32 @@ def enregistrement(m):
         json_file.write(model_json)
     # serialize weights to HDF5
     m.save_weights("model.h5")
-    COMPTEUR[0] = 0
-    LOSSFINAL.append(LOSS[0])
+
+    PASAVANTMORT.append(LOSS[0]/PAS[0])
+    LOSSES.append(LOSS[0])
+    VICTORIES.append(FOUND[0])
+    DEFEATS.append(LOST[0])
+    RATIOS.append(FOUND[0] / (LOST[0] + 1))
+    EPSILONS.append(EPS[0])
 
 
-    with open("loss.txt", "w") as json_file:
-        json_file.write(str(LOSSFINAL))
+
     print("Victoire : " + str(FOUND[0]) + " Défaites : " + str(LOST[0]) + " Ratio : " + str(FOUND[0] / (LOST[0] + 1))
-          + " EPS : " + str(EPS[0]) + " LOSS : " + str(LOSS[0]))
+          + " EPS : " + str(EPS[0]) + " LOSS : " + str(LOSS[0])+" ITERATIONS : "+str(COMPTEUR[0]/step))
+
+    saveOnDisk("loss", LOSSES)
+    saveOnDisk("epsilon",EPSILONS)
+    saveOnDisk("victoires",VICTORIES)
+    saveOnDisk("defaites", DEFEATS)
+    saveOnDisk("ratios",RATIOS)
+    saveOnDisk("pasAvantMort", PASAVANTMORT)
     LOST[0] = 0
     FOUND[0] = 0
+    PAS[0]=0
+
+def saveOnDisk(nomDuFichier, liste):
+    with open(nomDuFichier+".txt", "w") as file:
+        file.write(str(liste))
 
 
 "VERSION UN JOUEUR"
@@ -538,18 +578,18 @@ def one_player(screen):
         snake.experience.append(
             [old_state, directionRelative, recomp, snake.state])
 
-        lenExpMax = 300000
 
         if (len(snake.experience) > lenExpMax):
             snake.experience.pop(random.randrange(lenExpMax))
-        if(COMPTEUR[0]==10000):
-            batch = 32
+
+        PAS[0]+=1
+        if(COMPTEUR[0]%step==0 and COMPTEUR[0]!=0):
             x_train=[]
             y_train=[]
             lenExp = len(snake.experience)
             if (lenExp >= batch):
 
-                for i in range(32000):
+                for i in range(samplesSize):
                     sample = random.choice(snake.experience)
                     sample0 = sample[0]
                     sample1 = sample[1]
@@ -580,7 +620,7 @@ def one_player(screen):
                     #print("La récompense est " + str(sample2))
                     #print(Qmodif)
 
-            history = model.fit(np.array(x_train), np.array(y_train), nb_epoch=10, batch_size=32, verbose =0)
+            history = model.fit(np.array(x_train), np.array(y_train), nb_epoch=epochs, batch_size=batch, verbose =0)
             loss=np.mean(history.history['loss'])
 
             LOSS[0]=loss
@@ -588,14 +628,14 @@ def one_player(screen):
             enregistrement(model)
 
             # ON ARRETE QUAND C BON
-            if(loss<1):
-                print("On a convergence !")
-                sys.exit
+            if(loss<1 or COMPTEUR[0]==END):
+                print("Fin de l'exécution !")
+                os._exit(0)
 
-        else:
-            COMPTEUR[0]+=1
+        COMPTEUR[0]+=1
         "PRISE DE DECISION"
         if (end_condition(spots, next_head)):
+
             LOST[0]+=1
             return snake.tailmax
 
