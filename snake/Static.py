@@ -71,7 +71,3 @@ else:
     model.add(Dense(3))
 optimizer=Adam(lr=ALPHA)
 model.compile(loss='mse', optimizer=optimizer)
-
-def saveOnDisk(nomDuFichier, liste):
-    with open(nomDuFichier+".txt", "w") as file:
-        file.write(str(liste))
