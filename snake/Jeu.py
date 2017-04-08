@@ -196,12 +196,6 @@ class Jeu(object):
         open("defaites"+".txt", "w").write(str(DEFEATS))
         open("ratios"+".txt", "w").write(str(RATIOS))
         open("pasAvantMort"+".txt", "w").write(str(PASAVANTMORT))
-        saveOnDisk("loss", LOSSES)
-        saveOnDisk("epsilon",EPSILONS)
-        saveOnDisk("victoires",VICTORIES)
-        saveOnDisk("defaites", DEFEATS)
-        saveOnDisk("ratios",RATIOS)
-        saveOnDisk("pasAvantMort", PASAVANTMORT)
         
         LOST[0] = 0
         FOUND[0] = 0
