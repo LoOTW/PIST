@@ -4,7 +4,7 @@
 import random
 from collections import deque
 
-from Static import DIRECTIONS, BLUE, EXP, EPS, EPSSTEPS
+from snake.Static import DIRECTIONS, BLUE, EXP, EPS, EPSSTEPS
 
 import numpy as np
 class Snake(object):

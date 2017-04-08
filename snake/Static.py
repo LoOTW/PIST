@@ -37,7 +37,7 @@ LOST=[0]
 PAS=[0]
 
 "CARAC DU JEU"
-IHM=True
+IHM=False
 speed = 5000
 BOARD_LENGTH = 32
 OFFSET = 16
@@ -71,3 +71,7 @@ else:
     model.add(Dense(3))
 optimizer=Adam(lr=ALPHA)
 model.compile(loss='mse', optimizer=optimizer)
+
+def saveOnDisk(nomDuFichier, liste):
+    with open(nomDuFichier+".txt", "w") as file:
+        file.write(str(liste))

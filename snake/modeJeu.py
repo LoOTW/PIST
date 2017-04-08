@@ -2,10 +2,13 @@
 #
 
 import pygame
-from Jeu import Jeu
-from Static import * 
+
 import numpy as np
-import random 
+import random
+import os
+from snake.Jeu import Jeu
+from snake.Static import *
+
 
 class ModeJeu(object):
     def __init__(self, e):

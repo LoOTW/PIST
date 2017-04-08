@@ -1,8 +1,8 @@
 "SCRIPT DU MAIN (a executer pour lancer le jeu)"
 
 import pygame
-from Static import BOARD_LENGTH, OFFSET
-from modeJeu import ModeJeu
+from snake.Static import BOARD_LENGTH, OFFSET
+from snake.modeJeu import ModeJeu
 
 def main():
     pygame.init()

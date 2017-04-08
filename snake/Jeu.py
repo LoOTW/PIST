@@ -4,9 +4,8 @@
 import random
 import pygame
 
-from Snake import Snake
-from Static import BOARD_LENGTH, IHM, OFFSET, BLACK, RED, DIRECTIONS, LOSS, PAS, VICTORIES, LOSSES, \
-    PASAVANTMORT, FOUND, DEFEATS, LOST, RATIOS, EPSILONS, EPS, COMPTEUR, step 
+from snake.Snake import Snake
+from snake.Static import *
 
 class Jeu(object):
     def __init__(self):
@@ -63,8 +62,8 @@ class Jeu(object):
             return True
         return False
     
-    #def make_board():
-    #    return [[0 for i in range(BOARD_LENGTH)] for i in range(BOARD_LENGTH)]
+    def make_board(self):
+        return [[0 for i in range(BOARD_LENGTH)] for i in range(BOARD_LENGTH)]
     
     "FONCTION RETOURNANT LA RECOMPENSE POUR UNE ACTION"
     
@@ -112,9 +111,7 @@ class Jeu(object):
                     temprect = rect.move(coord[1] * OFFSET, coord[0] * OFFSET)
                     pygame.draw.rect(screen, coord[2], temprect)
         else:
-            #spots = make_board()
-            spots = [[] for i in range(BOARD_LENGTH)]
-            
+            spots = self.make_board()
             # ca place la popomme
             spots[food[0]][food[1]] = 2
     
@@ -124,7 +121,7 @@ class Jeu(object):
                     spots[coord[0]][coord[1]] = 1
         return spots
 
-    def move(self, ):
+    def move(self):
         snake = self.s[0]
         if len(snake.nextDir) != 0:
             next_dir = snake.nextDir.pop()
@@ -199,12 +196,12 @@ class Jeu(object):
         open("defaites"+".txt", "w").write(str(DEFEATS))
         open("ratios"+".txt", "w").write(str(RATIOS))
         open("pasAvantMort"+".txt", "w").write(str(PASAVANTMORT))
-    #    saveOnDisk("loss", LOSSES)
-    #    saveOnDisk("epsilon",EPSILONS)
-    #    saveOnDisk("victoires",VICTORIES)
-    #    saveOnDisk("defaites", DEFEATS)
-    #    saveOnDisk("ratios",RATIOS)
-    #    saveOnDisk("pasAvantMort", PASAVANTMORT)
+        saveOnDisk("loss", LOSSES)
+        saveOnDisk("epsilon",EPSILONS)
+        saveOnDisk("victoires",VICTORIES)
+        saveOnDisk("defaites", DEFEATS)
+        saveOnDisk("ratios",RATIOS)
+        saveOnDisk("pasAvantMort", PASAVANTMORT)
         
         LOST[0] = 0
         FOUND[0] = 0
