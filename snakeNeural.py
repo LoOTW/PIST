@@ -507,7 +507,7 @@ def enregistrement(m):
     # serialize weights to HDF5
     m.save_weights("model.h5")
 
-    PASAVANTMORT.append(LOSS[0]/PAS[0])
+    PASAVANTMORT.append(PAS[0]/(LOST[0]+1))
     LOSSES.append(LOSS[0])
     VICTORIES.append(FOUND[0])
     DEFEATS.append(LOST[0])
