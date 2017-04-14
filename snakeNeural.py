@@ -5,6 +5,7 @@ from keras.optimizers import Adam
 
 "Importation modules utiles"
 from collections import deque, namedtuple
+import sys
 import os
 import random
 import pygame
@@ -30,6 +31,12 @@ batch = 32
 epochs=10
 NB_NEURONES=4
 NB_COUCHES=1
+
+#Si on entre trois paramètres avec le programme, remplace les valeurs au dessus
+if len(sys.argv)==4:
+    ALPHA=float(sys.argv[1])
+    GAMMA=float(sys.argv[2])
+    NB_NEURONES=int(sys.argv[3])
 
 "Creation fichier enregistrement"
 my_file = Path("model.json")
