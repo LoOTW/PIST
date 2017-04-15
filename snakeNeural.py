@@ -29,7 +29,7 @@ lenExpMax = 300000
 samplesSize = 32000
 batch = 32
 epochs=10
-NB_NEURONES=4
+NB_NEURONES=[4,4]
 NB_COUCHES=1
 
 #Si on entre trois paramètres avec le programme, remplace les valeurs au dessus
@@ -52,7 +52,7 @@ else:
     model = Sequential()
     model.add(Dense(input_dim=5, output_dim=3))
     for i in range(NB_COUCHES):
-        model.add(Dense(NB_NEURONES, activation='relu'))
+        model.add(Dense(NB_NEURONES[i], activation='relu'))
     model.add(Dense(3))
 optimizer=Adam(lr=ALPHA)
 model.compile(loss='mse', optimizer=optimizer)
