@@ -7,7 +7,7 @@ import numpy as np
 import random
 import os
 from .Jeu import Jeu
-from .Static import *
+from QDir.snake import Static
 
 
 class ModeJeu(object):
@@ -26,16 +26,16 @@ class ModeJeu(object):
         screen = self.ecran
         clock = pygame.time.Clock()
         #spots = make_board()
-        spots = [[0 for i in range(BOARD_LENGTH)] for i in range(BOARD_LENGTH)]
+        spots = [[0 for i in range(Static.BOARD_LENGTH)] for i in range(Static.BOARD_LENGTH)]
         jeu = Jeu()
-        
+
         food = jeu.find_food(spots)
         snake = jeu.s[0]
         currentHead = snake.deque[snake.deque.__len__() - 1]
         snake.state = jeu.code_etat(currentHead, snake.voisins(currentHead), food, spots)
-    
+
         while True:
-            clock.tick(speed)
+            clock.tick(Static.speed)
             "Event processing"
             done = False
             events = pygame.event.get()
@@ -46,14 +46,14 @@ class ModeJeu(object):
                     break
             if done:
                 return False
-    
+
             "Stockage en memoire de la transition (s,a,r,s') qui vient d etre effectuee"
             old_state = snake.state
             lenOldState=len(old_state)
             oldStateSplit = old_state.split("_")
-            temp=model.predict(np.array([[oldStateSplit[0], oldStateSplit[1], old_state[lenOldState - 3],
+            temp=Static.model.predict(np.array([[oldStateSplit[0], oldStateSplit[1], old_state[lenOldState - 3],
                                           old_state[lenOldState - 2], old_state[lenOldState - 1]]]))
-           
+
             snake.Q=np.array([temp[0][0],temp[0][1],temp[0][2]])
             next_head = jeu.move()
             snake.populate_nextDir(events, "arrows")
@@ -62,21 +62,21 @@ class ModeJeu(object):
             recomp = jeu.get_reward(old_state, directionRelative)
             snake.experience.append(
                 [old_state, directionRelative, recomp, snake.state])
-    
+
             "On garantit que le nb de transitions stockees reste borne"
-            if (len(snake.experience) > lenExpMax):
-                snake.experience.pop(random.randrange(lenExpMax))
-    
+            if (len(snake.experience) > Static.lenExpMax):
+                snake.experience.pop(random.randrange(Static.lenExpMax))
+
             "Exp replay"
-            PAS[0]+=1
+            Static.PAS[0]+=1
             "On rassemble des transitions stockees en memoire qui vont servir a l apprentissage"
-            if(COMPTEUR[0]%step==0 and COMPTEUR[0]!=0):
+            if Static.COMPTEUR[0]%Static.step==0 and Static.COMPTEUR[0]!=0:
                 x_train=[]
                 y_train=[]
-                lenExp = len(snake.experience)
-                if (lenExp >= batch):
-    
-                    for i in range(samplesSize):
+                Static.lenExp = len(snake.experience)
+                if (Static.lenExp >= Static.batch):
+
+                    for i in range(Static.samplesSize):
                         sample = random.choice(snake.experience) #une transion (s,a,r,s)
                         sample0 = sample[0] #s l etat de depart
                         sample1 = sample[1] #a la direction prise
@@ -84,21 +84,21 @@ class ModeJeu(object):
                         sample3 = sample[3] #s' l etat apres realisation de a depuis s
                         lenSample0 = len(sample0)
                         lenSample3 = len(sample3)
-    
+
                         sample0split = sample[0].split("_")
                         sample3split = sample[3].split("_")
                         oldState4Keras = [sample0split[0], sample0split[1],
                                           sample0[lenSample0 - 3], sample0[lenSample0 - 2],
                                           sample0[lenSample0 - 1]]
-                        Qmodif = model.predict(np.array([oldState4Keras]))
-                        temp2 = model.predict(np.array([[sample3split[0], sample3split[1],
+                        Qmodif = Static.model.predict(np.array([oldState4Keras]))
+                        temp2 = Static.model.predict(np.array([[sample3split[0], sample3split[1],
                                                          sample3[lenSample3 - 3], sample3[lenSample3 - 2],
                                                          sample3[lenSample3 - 1]]]))
                         #print(Qmodif)
                         if jeu.end_cond(sample0, sample1):
                             Qmodif[0][sample1] = np.array([[sample2]])
                         else:
-                            Qmodif[0][sample1] = np.array(sample2 + GAMMA * temp2.max())
+                            Qmodif[0][sample1] = np.array(sample2 + Static.GAMMA * temp2.max())
                         x_train.append(oldState4Keras)
                         y_train.append([Qmodif[0][0], Qmodif[0][1], Qmodif[0][2]])
                         #print("on ajoute "+str(sample2 + GAMMA * (temp2.max() - Qmodif[0][sample1])))
@@ -106,56 +106,56 @@ class ModeJeu(object):
                         #print("L'état suivant est " + str(sample3))
                         #print("La récompense est " + str(sample2))
                         #print(Qmodif)
-                
+
                 "on apprend"
-                history = model.fit(np.array(x_train), np.array(y_train), nb_epoch=epochs, batch_size=batch, verbose =0)
+                history = Static.model.fit(np.array(x_train), np.array(y_train), nb_epoch=Static.epochs, batch_size=Static.batch, verbose =0)
                 loss=np.mean(history.history['loss'])
-    
-                LOSS[0]=loss
-    
-                jeu.enregistrement(model)
-    
+
+                Static.LOSS[0]=loss
+
+                jeu.enregistrement(Static.model)
+
                 # ON ARRETE QUAND C EST BON
-                if(loss<1 or COMPTEUR[0]==END):
+                if(loss<1 or Static.COMPTEUR[0]==Static.END):
                     print("Fin de l'exécution !")
                     os._exit(0)
-    
-            COMPTEUR[0]+=1
-                    
+
+            Static.COMPTEUR[0]+=1
+
             "rise de decision (basee sur Q)"
             if (jeu.end_condition(spots, next_head)):
-                LOST[0]+=1
+                Static.LOST[0]+=1
                 return snake.tailmax
-    
+
             if spots[next_head[0]][next_head[1]] == 2:
-                FOUND[0]+=1
+                Static.FOUND[0]+=1
                 snake.tailmax += 4
                 food = jeu.find_food(spots)
-    
+
             snake.deque.append(next_head)
-    
+
             if len(snake.deque) > snake.tailmax:
                 snake.deque.popleft()
-    
+
             # Draw code
-            if(IHM):
-                screen.fill(BLACK)  # makes screen black
-    
+            if(Static.IHM):
+                screen.fill(Static.BLACK)  # makes screen black
+
                 spots = jeu.update_board(screen, food)
-    
+
                 pygame.display.update()
             else:
                 spots = jeu.update_board(screen, food)
-                
+
     "DEF DU MENU DU SNAKE"
     # Return 0 to exit the program, 1 for a one-player game
     def menu(self):
         screen = self.ecran
         font = pygame.font.Font(None, 30)
-        menu_message1 = font.render("Press enter for one-player, t for two-player", True, WHITE)
-        menu_message2 = font.render("C'est le PIST de l'ambiance", True, WHITE)
-    
-        screen.fill(BLACK)
+        menu_message1 = font.render("Press enter for one-player, t for two-player", True, Static.WHITE)
+        menu_message2 = font.render("C'est le PIST de l'ambiance", True, Static.WHITE)
+
+        screen.fill(Static.BLACK)
         screen.blit(menu_message1, (32, 32))
         screen.blit(menu_message2, (32, 64))
         pygame.display.update()
