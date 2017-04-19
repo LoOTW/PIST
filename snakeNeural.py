@@ -29,8 +29,10 @@ lenExpMax = 300000
 samplesSize = 32000
 batch = 32
 epochs=10
+#S'il n'y a qu'une seule couche le deuxième chiffre n'est pas pris en compte
 NB_NEURONES=[4,4]
-NB_COUCHES=1
+#IMPOOOOOOORTANT
+NB_COUCHES=2
 
 #Si on entre trois paramètres avec le programme, remplace les valeurs au dessus
 if len(sys.argv)==4:
@@ -50,7 +52,7 @@ if my_file.is_file():
 else:
     "creation nouveau neural network"
     model = Sequential()
-    model.add(Dense(input_dim=5, output_dim=3))
+    model.add(Dense(input_dim=5, units=3))
     for i in range(NB_COUCHES):
         model.add(Dense(NB_NEURONES[i], activation='relu'))
     model.add(Dense(3))
@@ -633,7 +635,7 @@ def one_player(screen):
                     #print("La récompense est " + str(sample2))
                     #print(Qmodif)
 
-            history = model.fit(np.array(x_train), np.array(y_train), nb_epoch=epochs, batch_size=batch, verbose =0)
+            history = model.fit(np.array(x_train), np.array(y_train), epochs=epochs, batch_size=batch, verbose =0)
             loss=np.mean(history.history['loss'])
 
             LOSS[0]=loss
@@ -903,11 +905,12 @@ def main():
     thing = pygame.Rect(10, 10, 50, 50)
     pygame.draw.rect(screen, pygame.Color(255, 255, 255, 255), pygame.Rect(50, 50, 10, 10))
     first = True
+    
     playing = True
     while playing:
         if first or pick == 3:
-            pick = menu(screen)
-
+            pick = 1
+            
         options = {0: quit,
                    1: one_player,
                    2: two_player,
