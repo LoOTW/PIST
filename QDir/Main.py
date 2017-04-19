@@ -1,8 +1,7 @@
 "SCRIPT DU MAIN (a executer pour lancer le jeu)"
 
 import pygame
-from snake.Static import BOARD_LENGTH, OFFSET
-
+from QDir.snake.Static import BOARD_LENGTH, OFFSET
 from QDir.snake.modeJeu import ModeJeu
 
 
