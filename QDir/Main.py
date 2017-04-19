@@ -1,14 +1,14 @@
 "SCRIPT DU MAIN (a executer pour lancer le jeu)"
 
 import pygame
-from QDir.snake.Static import BOARD_LENGTH, OFFSET
+from QDir.snake import Static
 from QDir.snake.modeJeu import ModeJeu
 
 
 def main():
     pygame.init()
-    screen = pygame.display.set_mode([BOARD_LENGTH * OFFSET,
-                                      BOARD_LENGTH * OFFSET])
+    screen = pygame.display.set_mode([Static.BOARD_LENGTH * Static.OFFSET,
+                                      Static.BOARD_LENGTH * Static.OFFSET])
     modeJeu = ModeJeu(screen)
     pygame.display.set_caption("Snake")
     #thing = pygame.Rect(10, 10, 50, 50)
