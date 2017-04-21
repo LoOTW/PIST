@@ -32,13 +32,20 @@ epochs=10
 #S'il n'y a qu'une seule couche le deuxième chiffre n'est pas pris en compte
 NB_NEURONES=[4,4]
 #IMPOOOOOOORTANT
-NB_COUCHES=2
+NB_COUCHES=1
 
 #Si on entre trois paramètres avec le programme, remplace les valeurs au dessus
 if len(sys.argv)==4:
     ALPHA=float(sys.argv[1])
     GAMMA=float(sys.argv[2])
     NB_NEURONES=int(sys.argv[3])
+
+if len(sys.argv)==5:
+    ALPHA=float(sys.argv[1])
+    GAMMA=float(sys.argv[2])
+    NB_NEURONES=[int(sys.argv[3]),int(sys.argv[4])]
+    NB_COUCHES=2
+
 
 "Creation fichier enregistrement"
 my_file = Path("model.json")
