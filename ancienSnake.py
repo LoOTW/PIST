@@ -19,18 +19,18 @@ from pathlib import Path
 
 
 #INPUTS DE TEST
-step=10000
-END=500*step
+step=1000
+END=50*step
 EPS = [0.8, 0.05]
 EPSSTEPS=(EPS[0]-EPS[1])/(END/2)
 ALPHA=0.1
 GAMMA=0.9
-lenExpMax = 300000
-samplesSize = 32000
+lenExpMax = 30000
+samplesSize = 3200
 batch = 32
 epochs=10
 #S'il n'y a qu'une seule couche le deuxième chiffre n'est pas pris en compte
-NB_NEURONES=[4,4]
+NB_NEURONES=[7,4]
 #IMPOOOOOOORTANT
 NB_COUCHES=1
 
@@ -39,13 +39,6 @@ if len(sys.argv)==4:
     ALPHA=float(sys.argv[1])
     GAMMA=float(sys.argv[2])
     NB_NEURONES=int(sys.argv[3])
-
-if len(sys.argv)==5:
-    ALPHA=float(sys.argv[1])
-    GAMMA=float(sys.argv[2])
-    NB_NEURONES=[int(sys.argv[3]),int(sys.argv[4])]
-    NB_COUCHES=2
-
 
 "Creation fichier enregistrement"
 my_file = Path("model.json")
@@ -59,7 +52,7 @@ if my_file.is_file():
 else:
     "creation nouveau neural network"
     model = Sequential()
-    model.add(Dense(input_dim=5, units=3))
+    model.add(Dense(input_dim=7, units=3))
     for i in range(NB_COUCHES):
         model.add(Dense(NB_NEURONES[i], activation='relu'))
     model.add(Dense(3))
@@ -87,8 +80,8 @@ PAS=[0]
 
 
 
-IHM=False
-speed = 5000
+IHM=True
+speed = 500
 BOARD_LENGTH = 32
 OFFSET = 16
 WHITE = (255, 255, 255)
@@ -120,6 +113,334 @@ DIRECTIONS = namedtuple('DIRECTIONS',
 def rand_color():
     return (random.randrange(254) | 64, random.randrange(254) | 64, random.randrange(254) | 64)
 
+# Crée 7 inputs :
+# 4 inputs correspondants à la présence de la pomme dans les 4 carrés autour du snake
+# 3 inputs correspondants à la distance tête snake <-> obstacle à G, devant et à D
+def mappingCarre(board, snake, head):
+    input = []
+
+    # Cherche les coordonnees de la pomme
+    X = 0
+    Y = 0
+    for i in range(BOARD_LENGTH):
+        stop = False
+        for j in range(BOARD_LENGTH):
+            if board[i][j] == 2:
+                X = i
+                Y = j
+                stop = True
+                break
+        if stop:
+            break
+
+    XRelatif = head[0] - X  # X Relatif
+    YRelatif = head[1] - Y  # Y Relatif
+
+    currentDirection = snake.direction
+    xTete = head[0]
+    yTete = head[1]
+    x = xTete
+    y = yTete
+
+    trouve = False
+
+    # Si dirige vers le haut
+    if currentDirection == DIRECTIONS.Up:
+        # Création des 4 inputs
+
+        if (XRelatif < 0 and YRelatif < 0):
+            distance = 1 - (abs(XRelatif) + abs(YRelatif)) / BOARD_LENGTH
+            input += [distance, 0, 0, 0]
+        elif (XRelatif < 0 and YRelatif == 0):
+            distance = 1 - (abs(XRelatif)) / BOARD_LENGTH
+            input += [distance, distance, 0, 0]
+        elif (XRelatif < 0 and YRelatif > 0):
+            distance = 1 - (abs(XRelatif) + abs(YRelatif)) / BOARD_LENGTH
+            input += [0, distance, 0, 0]
+        elif (XRelatif == 0 and YRelatif > 0):
+            distance = 1 - (abs(YRelatif)) / BOARD_LENGTH
+            input += [0, distance, distance, 0]
+        elif (XRelatif > 0 and YRelatif > 0):
+            distance = 1 - (abs(XRelatif) + abs(YRelatif)) / BOARD_LENGTH
+            input += [0, 0, distance, 0]
+        elif (XRelatif > 0 and YRelatif == 0):
+            distance = 1 - (abs(XRelatif)) / BOARD_LENGTH
+            input += [0, 0, distance, distance]
+        elif (XRelatif > 0 and YRelatif < 0):
+            distance = 1 - (abs(XRelatif) + abs(YRelatif)) / BOARD_LENGTH
+            input += [0, 0, 0, distance]
+        elif (XRelatif == 0 and YRelatif < 0):
+            distance = 1 - (abs(YRelatif)) / BOARD_LENGTH
+            input += [distance, 0, 0, distance]
+        elif (XRelatif == 0 and YRelatif == 0):
+            input += [1, 1, 1, 1]
+
+        # Création des 3 inputs
+        if xTete < 0 or xTete >= BOARD_LENGTH or yTete < 0 or yTete >= BOARD_LENGTH:
+            input += [1,1,1]
+        else :
+            # A gauche
+            while y >= 0 and not trouve:
+                y -= 1
+                if board[xTete][y] == 1:
+                    trouve = True
+                    distance = 1 - (abs(y - yTete) / BOARD_LENGTH)
+                    input += [distance]
+            if not trouve:
+                distance = 1 - (abs(y - yTete) / BOARD_LENGTH)
+                input += [distance]
+            y = yTete
+            trouve = False
+
+            # En haut
+            while x >= 0 and not trouve:
+                x -= 1
+                if board[x][yTete] == 1:
+                    trouve = True
+                    distance = 1 - (abs(x - xTete) / BOARD_LENGTH)
+                    input += [distance]
+            if not trouve:
+                distance = 1 - (abs(x - xTete) / BOARD_LENGTH)
+                input += [distance]
+            x = xTete
+            trouve = False
+
+            # A droite
+            while y < BOARD_LENGTH - 1 and not trouve:
+                y += 1
+                if board[xTete][y] == 1:
+                    trouve = True
+                    distance = 1 - (abs(y - yTete) / BOARD_LENGTH)
+                    input += [distance]
+            if not trouve:
+                distance = 1 - (abs(y - yTete) / BOARD_LENGTH)
+                input += [distance]
+            y = yTete
+            trouve = False
+
+    # Si dirige vers la droite
+    if currentDirection == DIRECTIONS.Right:
+        # Création des 4 inputs
+        if (XRelatif < 0 and YRelatif < 0):
+            distance = 1 - (abs(XRelatif) + abs(YRelatif)) / BOARD_LENGTH
+            input += [0, 0, 0, distance]
+        elif (XRelatif < 0 and YRelatif == 0):
+            distance = 1 - (abs(XRelatif)) / BOARD_LENGTH
+            input += [distance, 0, 0, distance]
+        elif (XRelatif < 0 and YRelatif > 0):
+            distance = 1 - (abs(XRelatif) + abs(YRelatif)) / BOARD_LENGTH
+            input += [distance, 0, 0, 0]
+        elif (XRelatif == 0 and YRelatif > 0):
+            distance = 1 - (abs(YRelatif)) / BOARD_LENGTH
+            input += [distance, distance, 0, 0]
+        elif (XRelatif > 0 and YRelatif > 0):
+            distance = 1 - (abs(XRelatif) + abs(YRelatif)) / BOARD_LENGTH
+            input += [0, distance, 0, 0]
+        elif (XRelatif > 0 and YRelatif == 0):
+            distance = 1 - (abs(XRelatif)) / BOARD_LENGTH
+            input += [0, distance, distance, 0]
+        elif (XRelatif > 0 and YRelatif < 0):
+            distance = 1 - (abs(XRelatif) + abs(YRelatif)) / BOARD_LENGTH
+            input += [0, 0, distance, 0]
+        elif (XRelatif == 0 and YRelatif < 0):
+            distance = 1 - (abs(YRelatif)) / BOARD_LENGTH
+            input += [0, 0, distance, distance]
+        elif (XRelatif == 0 and YRelatif == 0):
+            input += [1, 1, 1, 1]
+
+        # Création des 3 inputs
+        if xTete < 0 or xTete >= BOARD_LENGTH or yTete < 0 or yTete >= BOARD_LENGTH:
+            input += [1,1,1]
+        else :
+            # En haut
+            while x >= 0 and not trouve:
+                x -= 1
+                if board[x][yTete] == 1:
+                    trouve = True
+                    distance = 1 - (abs(x - xTete) / BOARD_LENGTH)
+                    input += [distance]
+            if not trouve:
+                distance = 1 - (abs(x - xTete) / BOARD_LENGTH)
+                input += [distance]
+            x = xTete
+            trouve = False
+
+            # A droite
+            while y < BOARD_LENGTH - 1 and not trouve:
+                y += 1
+                if board[xTete][y] == 1:
+                    trouve = True
+                    distance = 1 - (abs(y - yTete) / BOARD_LENGTH)
+                    input += [distance]
+            if not trouve:
+                distance = 1 - (abs(y - yTete) / BOARD_LENGTH)
+                input += [distance]
+            y = yTete
+            trouve = False
+
+            # En bas
+            while x < BOARD_LENGTH - 1 and not trouve:
+                x += 1
+                if board[x][yTete] == 1:
+                    trouve = True
+                    distance = 1 - (abs(x - xTete) / BOARD_LENGTH)
+                    input += [distance]
+            if not trouve:
+                distance = 1 - (abs(x - xTete) / BOARD_LENGTH)
+                input += [distance]
+            x = xTete
+            trouve = False
+
+    # Si dirige vers le bas
+    if currentDirection == DIRECTIONS.Down:
+        # Création des 4 inputs
+        if (XRelatif < 0 and YRelatif < 0):
+            distance = 1 - (abs(XRelatif) + abs(YRelatif)) / BOARD_LENGTH
+            input += [0, 0, distance, 0]
+        elif (XRelatif < 0 and YRelatif == 0):
+            distance = 1 - (abs(XRelatif)) / BOARD_LENGTH
+            input += [0, 0, distance, distance]
+        elif (XRelatif < 0 and YRelatif > 0):
+            distance = 1 - (abs(XRelatif) + abs(YRelatif)) / BOARD_LENGTH
+            input += [0, 0, 0, distance]
+        elif (XRelatif == 0 and YRelatif > 0):
+            distance = 1 - (abs(YRelatif)) / BOARD_LENGTH
+            input += [distance, 0, 0, distance]
+        elif (XRelatif > 0 and YRelatif > 0):
+            distance = 1 - (abs(XRelatif) + abs(YRelatif)) / BOARD_LENGTH
+            input += [distance, 0, 0, 0]
+        elif (XRelatif > 0 and YRelatif == 0):
+            distance = 1 - (abs(XRelatif)) / BOARD_LENGTH
+            input += [distance, distance, 0, 0]
+        elif (XRelatif > 0 and YRelatif < 0):
+            distance = 1 - (abs(XRelatif) + abs(YRelatif)) / BOARD_LENGTH
+            input += [0, distance, 0, 0]
+        elif (XRelatif == 0 and YRelatif < 0):
+            distance = 1 - (abs(YRelatif)) / BOARD_LENGTH
+            input += [0, distance, distance, 0]
+        elif (XRelatif == 0 and YRelatif == 0):
+            input += [1, 1, 1, 1]
+
+        # Création des 3 inputs
+
+        # A droite
+        if xTete < 0 or xTete >= BOARD_LENGTH or yTete < 0 or yTete >= BOARD_LENGTH:
+            input += [1,1,1]
+        else :
+            while y < BOARD_LENGTH - 1 and not trouve:
+                y += 1
+                if board[xTete][y] == 1:
+                    trouve = True
+                    distance = 1 - (abs(y - yTete) / BOARD_LENGTH)
+                    input += [distance]
+            if not trouve:
+                distance = 1 - (abs(y - yTete) / BOARD_LENGTH)
+                input += [distance]
+            y = yTete
+            trouve = False
+
+            # En bas
+            while x < BOARD_LENGTH - 1 and not trouve:
+                x += 1
+                if board[x][yTete] == 1:
+                    trouve = True
+                    distance = 1 - (abs(x - xTete) / BOARD_LENGTH)
+                    input += [distance]
+            if not trouve:
+                distance = 1 - (abs(x - xTete) / BOARD_LENGTH)
+                input += [distance]
+            x = xTete
+            trouve = False
+
+            # A gauche
+            while y >= 0 and not trouve:
+                y -= 1
+                if board[xTete][y] == 1:
+                    trouve = True
+                    distance = 1 - (abs(y - yTete) / BOARD_LENGTH)
+                    input += [distance]
+            if not trouve:
+                distance = 1 - (abs(y - yTete) / BOARD_LENGTH)
+                input += [distance]
+            y = yTete
+            trouve = False
+
+    # Si dirige vers la gauche
+    if currentDirection == DIRECTIONS.Left:
+
+        # Création des 4 inputs
+        if (XRelatif < 0 and YRelatif < 0):
+            distance = 1 - (abs(XRelatif) + abs(YRelatif)) / BOARD_LENGTH
+            input += [0, distance, 0, 0]
+        elif (XRelatif < 0 and YRelatif == 0):
+            distance = 1 - (abs(XRelatif)) / BOARD_LENGTH
+            input += [0, distance, distance, 0]
+        elif (XRelatif < 0 and YRelatif > 0):
+            distance = 1 - (abs(XRelatif) + abs(YRelatif)) / BOARD_LENGTH
+            input += [0, 0, distance, 0]
+        elif (XRelatif == 0 and YRelatif > 0):
+            distance = 1 - (abs(YRelatif)) / BOARD_LENGTH
+            input += [0, 0, distance, distance]
+        elif (XRelatif > 0 and YRelatif > 0):
+            distance = 1 - (abs(XRelatif) + abs(YRelatif)) / BOARD_LENGTH
+            input += [0, 0, 0, distance]
+        elif (XRelatif > 0 and YRelatif == 0):
+            distance = 1 - (abs(XRelatif)) / BOARD_LENGTH
+            input += [distance, 0, 0, distance]
+        elif (XRelatif > 0 and YRelatif < 0):
+            distance = 1 - (abs(XRelatif) + abs(YRelatif)) / BOARD_LENGTH
+            input += [distance, 0, 0, 0]
+        elif (XRelatif == 0 and YRelatif < 0):
+            distance = 1 - (abs(YRelatif)) / BOARD_LENGTH
+            input += [distance, distance, 0, 0]
+        elif (XRelatif == 0 and YRelatif == 0):
+            input += [1, 1, 1, 1]
+
+            # Création des 3 inputs
+        if xTete < 0 or xTete >= BOARD_LENGTH or yTete < 0 or yTete >= BOARD_LENGTH:
+            input += [1, 1, 1]
+        else:
+            #  En bas
+            while x < BOARD_LENGTH - 1 and not trouve:
+                x += 1
+                if board[x][yTete] == 1:
+                    trouve = True
+                    distance = 1 - (abs(x - xTete) / BOARD_LENGTH)
+                    input += [distance]
+            if not trouve:
+                distance = 1 - (abs(x - xTete) / BOARD_LENGTH)
+                input += [distance]
+            x = xTete
+            trouve = False
+
+            # A gauche
+            while y >= 0 and not trouve:
+                y -= 1
+                if board[xTete][y] == 1:
+                    trouve = True
+                    distance = 1 - (abs(y - yTete) / BOARD_LENGTH)
+                    input += [distance]
+            if not trouve:
+                distance = 1 - (abs(y - yTete) / BOARD_LENGTH)
+                input += [distance]
+            y = yTete
+            trouve = False
+
+            # A droite
+            while y < BOARD_LENGTH - 1 and not trouve:
+                y += 1
+                if board[xTete][y] == 1:
+                    trouve = True
+                    distance = 1 - (abs(y - yTete) / BOARD_LENGTH)
+                    input += [distance]
+            if not trouve:
+                distance = 1 - (abs(y - yTete) / BOARD_LENGTH)
+                input += [distance]
+            y = yTete
+            trouve = False
+
+    return input
+
 
 "ASSOCIE A TOUT ETAT POSSIBLE UN CODE UNIQUE (A PARTIR DES LA POSITION + ETAT VOISINS"
 
@@ -148,7 +469,22 @@ def code_etat(position, voisins, food, spots):
                 s += "2"
    #print("Mon état est donc " +str(s))
     return s
+# "['case qui tue','case vide','case pomme']  = [0,1,2]
+def nextPosition(voisins, spots, directionRelative):
+    s=0
+    # obtention etats cases voisines
 
+    v = voisins[directionRelative]
+    if (v[0] < 0 or v[0] >= BOARD_LENGTH or v[1] < 0 or v[1] >= BOARD_LENGTH):
+        s = 0
+    else:
+        if spots[v[0]][v[1]] == 0:
+            s = 1
+        elif spots[v[0]][v[1]] == 1:
+            s = 0
+        else:
+            s = 2
+    return s
 "'CREATION CLASSE SNAKE"
 
 
@@ -326,6 +662,16 @@ def get_reward(old_state, directionRelative):
             return 50
     else:
         return -20
+
+def getRewardMappingCarre(directionRelative, voisins, spots):
+    nextPositionValue=nextPosition(voisins, spots, directionRelative)
+    #print("La valeur de la case suivante est :" +str(nextPositionValue))
+    if (nextPositionValue==0):
+        return -20
+    elif nextPositionValue == 1:
+        return -1
+    else:
+        return 50
 
 "MAJ DU TABLEAU DE JEU"
 
@@ -562,7 +908,7 @@ def one_player(screen):
     food = find_food(spots)
     snake = Snake()
     currentHead = snake.deque[snake.deque.__len__() - 1]
-    snake.state = code_etat(currentHead, snake.voisins(currentHead), food, spots)
+    snake.state = mappingCarre(spots, snake, currentHead)
     #snake.rewardMatrix = snake.initializeRewardMatrix(food)
 
     while True:
@@ -580,23 +926,29 @@ def one_player(screen):
 
 
         "Game logic"
+
         old_state = snake.state
-        lenOldState=len(old_state)
-        oldStateSplit = old_state.split("_")
-        temp=model.predict(np.array([[oldStateSplit[0], oldStateSplit[1], old_state[lenOldState - 3],
-                                      old_state[lenOldState - 2], old_state[lenOldState - 1]]]))
+        temp = model.predict(np.array([old_state]))
+
         snake.Q=np.array([temp[0][0],temp[0][1],temp[0][2]])
+        directionRelative=snake.populate_nextDir(events, "arrows")
+        #print("Je suis en "+ str(snake.deque[-1]))
+        voisins = snake.voisins(snake.deque[-1])
+
+        #print("Les voisins sont : " + str(voisins))
+
+        #print("je choisis " + str(directionRelative))
 
         next_head = move(snake)
-        snake.populate_nextDir(events, "arrows")
-        snake.state = code_etat(next_head, snake.voisins(next_head), food, spots)
+        #print("Je serais en "+str(next_head))
 
+        snake.state = mappingCarre(spots, snake, next_head)
         #new_state = snake.state
 
         "EXP REPLAY"
-        directionRelative = snake.trad_direction(snake.direction)
-        recomp = get_reward(old_state, directionRelative)
 
+        recomp = getRewardMappingCarre(directionRelative, voisins, spots)
+        #print("La récompense est "+str(recomp))
         snake.experience.append(
             [old_state, directionRelative, recomp, snake.state])
 
@@ -612,36 +964,23 @@ def one_player(screen):
             if (lenExp >= batch):
 
                 for i in range(samplesSize):
-                    sample = random.choice(snake.experience)
-                    sample0 = sample[0]
-                    sample1 = sample[1]
-                    sample2 = sample[2]
-                    sample3 = sample[3]
-                    lenSample0 = len(sample0)
-                    lenSample3 = len(sample3)
+                    sample = random.choice(EXP)
 
-                    sample0split = sample[0].split("_")
-                    sample3split = sample[3].split("_")
-                    oldState4Keras = [sample0split[0], sample0split[1],
-                                      sample0[lenSample0 - 3], sample0[lenSample0 - 2],
-                                      sample0[lenSample0 - 1]]
+                    oldState4Keras = sample[0]
                     Qmodif = model.predict(np.array([oldState4Keras]))
-                    temp2 = model.predict(np.array([[sample3split[0], sample3split[1],
-                                                     sample3[lenSample3 - 3], sample3[lenSample3 - 2],
-                                                     sample3[lenSample3 - 1]]]))
-                    #print(Qmodif)
-                    if end_cond(sample0, sample1):
-                        Qmodif[0][sample1] = np.array([[sample2]])
+                    #print("Avant Q vaut : "+str(Qmodif))
+                    if end_cond(sample[0], sample[1]):
+                        Qmodif[0][sample[1]] = np.array([[sample[2]]])
                     else:
-                        Qmodif[0][sample1] = np.array(sample2 + GAMMA * temp2.max())
+                        temp2 = model.predict(np.array([sample[3]]))
+                        Qmodif[0][sample[1]] = np.array(sample[2] + GAMMA * temp2.max())
                     x_train.append(oldState4Keras)
                     y_train.append([Qmodif[0][0], Qmodif[0][1], Qmodif[0][2]])
-                    #print("on ajoute "+str(sample2 + GAMMA * (temp2.max() - Qmodif[0][sample1])))
-                    #print("L'état est " + str(sample0)+" La direction choisie est " + str(sample1))
-                    #print("L'état suivant est " + str(sample3))
-                    #print("La récompense est " + str(sample2))
-                    #print(Qmodif)
-
+                    #print("on ajoute "+str(sample[2] + GAMMA * temp2.max()))
+                    #print("L'état est " + str(sample[0])+" La direction choisie est " + str(sample[1]))
+                    #print("L'état suivant est " + str(sample[3]))
+                    #print("La récompense est " + str(sample[2]))
+                    #print("Après Q vaut : " + str(Qmodif))
             history = model.fit(np.array(x_train), np.array(y_train), epochs=epochs, batch_size=batch, verbose =0)
             loss=np.mean(history.history['loss'])
 
