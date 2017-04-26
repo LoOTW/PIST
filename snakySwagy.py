@@ -332,6 +332,35 @@ class Snake(object):
         # politique decision
         self.Q = np.array([[0, 0, 0]])
 
+
+    "RETOURNE LA LISTE [voisin gauche, voisin devant, voisin droite]"
+
+    def voisins(self, head):
+        i = head[0]
+        j = head[1]
+        V = []
+
+        if (self.direction == DIRECTIONS.Up):
+            V.append([i, j - 1])
+            V.append([i - 1, j])
+            V.append([i, j + 1])
+
+        elif (self.direction == DIRECTIONS.Right):
+            V.append([i - 1, j])
+            V.append([i, j + 1])
+            V.append([i + 1, j])
+
+        elif (self.direction == DIRECTIONS.Down):
+            V.append([i, j + 1])
+            V.append([i + 1, j])
+            V.append([i, j - 1])
+
+        elif (self.direction == DIRECTIONS.Left):
+            V.append([i + 1, j])
+            V.append([i, j - 1])
+            V.append([i - 1, j])
+        return V
+
     "donne actions possibles (directions relatives pour Snake) a partir de directions absolues (par rapport au plateau)"
 
     def trad_direction(self, nv_dir):
