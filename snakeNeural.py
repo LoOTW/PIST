@@ -1174,7 +1174,6 @@ def one_player(screen):
         "PRISE DE DECISION"
         if (end_condition(spots, next_head)):
             if(ratioSingle[0]>max(RATIOSSINGLE)):
-                print(str(ratioSingle[0]+" ete "+str(RATIOSSINGLE)))
                 RATIOSSINGLE.append(ratioSingle[0])
                 enregistrementModel(model)
             LOST[0]+=1
