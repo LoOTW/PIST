@@ -21,7 +21,7 @@ from pathlib import Path
 #INPUTS DE TEST
 step=5000
 END=500*step
-EPS = [0.8, 0]
+EPS = [0, 0]
 EPSSTEPS=(EPS[0]-EPS[1])/(END/2)
 ALPHA=0.01
 GAMMA=0.7
@@ -80,8 +80,8 @@ PAS=[0]
 
 
 
-IHM=False
-speed = 5000
+IHM=True
+speed = 500
 BOARD_LENGTH = 32
 OFFSET = 16
 WHITE = (255, 255, 255)
@@ -1132,7 +1132,7 @@ def one_player(screen):
             snake.experience.pop(random.randrange(lenExpMax))
 
         PAS[0]+=1
-        if(COMPTEUR[0]%step==0 and COMPTEUR[0]!=0):
+        if(False):
             x_train=[]
             y_train=[]
             lenExp = len(snake.experience)
@@ -1158,11 +1158,11 @@ def one_player(screen):
                     #print("Après Q vaut : " + str(Qmodif))
 
 
-            history = model.fit(np.array(x_train), np.array(y_train), epochs=epochs, batch_size=batch, verbose =0)
-            loss=np.mean(history.history['loss'])
+            #history = model.fit(np.array(x_train), np.array(y_train), epochs=epochs, batch_size=batch, verbose =0)
+            #loss=np.mean(history.history['loss'])
 
-            LOSS[0]=loss
-            enregistrement()
+            #LOSS[0]=loss
+            #enregistrement()
 
 
             # ON ARRETE QUAND C BON
@@ -1173,10 +1173,11 @@ def one_player(screen):
         COMPTEUR[0]+=1
         "PRISE DE DECISION"
         if (end_condition(spots, next_head)):
+            print(ratioSingle)
             if(ratioSingle[0]>max(RATIOSSINGLE)):
-                print(str(ratioSingle[0]+" ete "+str(RATIOSSINGLE)))
+
                 RATIOSSINGLE.append(ratioSingle[0])
-                enregistrementModel(model)
+                #enregistrementModel(model)
             LOST[0]+=1
             return snake.tailmax
 
