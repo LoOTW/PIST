@@ -617,13 +617,12 @@ def is_food(board, point):
 
 "EXP REPLAY"
 
-
 def end_cond(etat, action):
-    if etat[len(etat) - 3] == '0' and action == 0:
+    if etat[4] == 1 and action == 0:
         return True
-    if etat[len(etat) - 2] == '0' and action == 1:
+    if etat[5] == 1 and action == 1:
         return True
-    if etat[len(etat) - 1] == '0' and action == 2:
+    if etat[6] == 1 and action == 2:
         return True
     return False
 
