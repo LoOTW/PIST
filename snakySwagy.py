@@ -73,7 +73,7 @@ LOSS=[0]
 FOUND=[0]
 LOST=[0]
 PAS=[0]
-IHM=False
+IHM=True
 speed = 5000
 BOARD_LENGTH = 32
 OFFSET = 16
@@ -332,6 +332,8 @@ class Snake(object):
         # politique decision
         self.Q = np.array([[0, 0, 0]])
 
+    def get_color(s):
+        return BLUE
 
     "RETOURNE LA LISTE [voisin gauche, voisin devant, voisin droite]"
 
