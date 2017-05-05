@@ -305,7 +305,7 @@ def nextPosition(voisins, spots, directionRelative):
 # remarque : deque == type d'objet (en gros une liste chainee)
 
 class Snake(object):
-    def __init__(self, direction=DIRECTIONS.Right, point=(16, 16, BLUE), color=None):
+    def __init__(self, direction=DIRECTIONS.Right, point=(16, 16, (0 , 184, 222)), color=None):
         # taille max sachant nb popommes mangees
         self.tailmax = 4
 
@@ -333,7 +333,7 @@ class Snake(object):
         self.Q = np.array([[0, 0, 0]])
 
     def get_color(s):
-        return BLUE
+        return (0 , 184, 222)
 
     "RETOURNE LA LISTE [voisin gauche, voisin devant, voisin droite]"
 
@@ -468,14 +468,14 @@ def update_board(screen, snakes, food):
             for i in range(BOARD_LENGTH):
                 row.append(0)
                 temprect = rect.move(num1 * OFFSET, num2 * OFFSET)
-                pygame.draw.rect(screen, BLACK, temprect)
+                pygame.draw.rect(screen, (12, 35, 64), temprect)
                 num2 += 1
             num1 += 1
 
         # ca place la popomme
         spots[food[0]][food[1]] = 2
         temprect = rect.move(food[1] * OFFSET, food[0] * OFFSET)
-        pygame.draw.rect(screen, RED, temprect)
+        pygame.draw.rect(screen, (164, 210, 51), temprect)
 
         # ca renseigne ou qu il est le snake
         for snake in snakes:
@@ -497,7 +497,7 @@ def update_board(screen, snakes, food):
 
 
 def get_color(s):
-    return BLUE
+    return (0 , 184, 222)
 
 "I DON T KNOW REALLY LOL"
 
@@ -521,7 +521,7 @@ def update_board_delta(screen, deltas):
     for d_coord in delqueue:
         temprect = rect.move(d_coord[1] * OFFSET, d_coord[0] * OFFSET)
         # TODO generalize background color
-        pygame.draw.rect(screen, BLACK, temprect)
+        pygame.draw.rect(screen, (12, 35, 64), temprect)
 
     for a_coord in addqueue:
         temprect = rect.move(a_coord[1] * OFFSET, a_coord[0] * OFFSET)
@@ -538,7 +538,7 @@ def menu(screen):
     menu_message1 = font.render("Press enter for one-player, t for two-player", True, WHITE)
     menu_message2 = font.render("C'est le PIST de l'ambiance", True, WHITE)
 
-    screen.fill(BLACK)
+    screen.fill((12, 35, 64))
     screen.blit(menu_message1, (32, 32))
     screen.blit(menu_message2, (32, 64))
     pygame.display.update()
@@ -760,7 +760,7 @@ def one_player(screen):
 
         # Draw code
         if(IHM):
-            screen.fill(BLACK)  # makes screen black
+            screen.fill((12, 35, 64))  # makes screen black
 
             spots = update_board(screen, [snake], food)
 
