@@ -51,7 +51,7 @@ if my_file.is_file():
 else:
     "creation nouveau neural network"
     model = Sequential()
-    model.add(Dense(input_dim=10))
+    model.add(Dense(input_dim=10, output_dim=3))
     model.add(Dense(NB_NEURONES, activation='relu'))
     model.add(Dense(3))
 optimizer=Adam(lr=ALPHA)
