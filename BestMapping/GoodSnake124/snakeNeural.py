@@ -19,20 +19,19 @@ from pathlib import Path
 
 
 #INPUTS DE TEST
-step=1000
-END=50*step
-EPS = [0.8, 0.05]
+step=5000
+END=500*step
+EPS = [0, 0]
 EPSSTEPS=(EPS[0]-EPS[1])/(END/2)
-ALPHA=0.1
-GAMMA=0.9
+ALPHA=0.01
+GAMMA=0.7
 lenExpMax = 30000
 samplesSize = 3200
 batch = 32
 epochs=10
 #S'il n'y a qu'une seule couche le deuxième chiffre n'est pas pris en compte
-NB_NEURONES=[7,4]
+NB_NEURONES=6
 #IMPOOOOOOORTANT
-NB_COUCHES=1
 
 #Si on entre trois paramètres avec le programme, remplace les valeurs au dessus
 if len(sys.argv)==4:
@@ -53,8 +52,7 @@ else:
     "creation nouveau neural network"
     model = Sequential()
     model.add(Dense(input_dim=7, units=3))
-    for i in range(NB_COUCHES):
-        model.add(Dense(NB_NEURONES[i], activation='relu'))
+    model.add(Dense(NB_NEURONES, activation='relu'))
     model.add(Dense(3))
 optimizer=Adam(lr=ALPHA)
 model.compile(loss='mse', optimizer=optimizer)
@@ -71,8 +69,10 @@ DEFEATS=[]
 VICTORIES=[]
 RATIOS=[]
 EPSILONS=[]
+RATIOSSINGLE=[0]
 
 #INTERMEDIAIRES DE CALCULS
+ratioSingle=[0]
 LOSS=[0]
 FOUND=[0]
 LOST=[0]
@@ -113,13 +113,198 @@ DIRECTIONS = namedtuple('DIRECTIONS',
 def rand_color():
     return (random.randrange(254) | 64, random.randrange(254) | 64, random.randrange(254) | 64)
 
+
+def encoreUnMapping(board, snake, head):
+    input = []
+
+    (X, Y) = next(((i, row.index(2)) for i, row in enumerate(board) if 2 in row), (0, 0))
+    XRelatif = head[0] - X  # X Relatif
+    YRelatif = head[1] - Y  # Y Relatif
+
+    currentDirection = snake.direction
+    xTete = head[0]
+    yTete = head[1]
+    dead4sure = xTete < 0 or xTete >= BOARD_LENGTH or yTete < 0 or yTete >= BOARD_LENGTH
+
+    distance = 1
+    # Si dirige vers le haut
+    if currentDirection == DIRECTIONS.Up:
+        # Création des 4 inputs
+        if (XRelatif < 0 and YRelatif < 0):
+            input.extend([distance, 0, 0, 0])
+        elif (XRelatif < 0 and YRelatif == 0):
+            input += [distance, distance, 0, 0]
+        elif (XRelatif < 0 and YRelatif > 0):
+            input.extend([0, distance, 0, 0])
+        elif (XRelatif == 0 and YRelatif > 0):
+            input += [0, distance, distance, 0]
+        elif (XRelatif > 0 and YRelatif > 0):
+            input.extend([0, 0, distance, 0])
+        elif (XRelatif > 0 and YRelatif == 0):
+            input += [0, 0, distance, distance]
+        elif (XRelatif > 0 and YRelatif < 0):
+            input.extend([0, 0, 0, distance])
+        elif (XRelatif == 0 and YRelatif < 0):
+            input.extend([distance, 0, 0, distance])
+        elif (XRelatif == 0 and YRelatif == 0):
+            input.extend([distance, distance, distance, distance])
+
+        # Création des 3 inputs
+
+        # A gauche
+        if dead4sure or yTete == 0 or board[xTete][yTete - 1] == 1:
+            input.append(1)
+        else:
+            input.append(0)
+
+        # En haut
+        if dead4sure or xTete == 0 or board[xTete - 1][yTete] == 1:
+            input.append(1)
+        else:
+            input.append(0)
+
+        # A droite
+        if dead4sure or yTete == BOARD_LENGTH - 1 or board[xTete][yTete + 1] == 1:
+            input.append(1)
+        else:
+            input.append(0)
+
+    # Si dirige vers la droite
+    if currentDirection == DIRECTIONS.Right:
+        # Création des 4 inputs
+        if (XRelatif < 0 and YRelatif < 0):
+            input.extend([0, 0, 0, distance])
+        elif (XRelatif < 0 and YRelatif == 0):
+            input.extend([distance, 0, 0, distance])
+        elif (XRelatif < 0 and YRelatif > 0):
+            input.extend([distance, 0, 0, 0])
+        elif (XRelatif == 0 and YRelatif > 0):
+            input += [distance, distance, 0, 0]
+        elif (XRelatif > 0 and YRelatif > 0):
+            input.extend([0, distance, 0, 0])
+        elif (XRelatif > 0 and YRelatif == 0):
+            input += [0, distance, distance, 0]
+        elif (XRelatif > 0 and YRelatif < 0):
+            input.extend([0, 0, distance, 0])
+        elif (XRelatif == 0 and YRelatif < 0):
+            input += [0, 0, distance, distance]
+        elif (XRelatif == 0 and YRelatif == 0):
+            input.extend([distance, distance, distance, distance])
+
+        # Création des 3 inputs
+
+        # En haut
+        if dead4sure or xTete == 0 or board[xTete - 1][yTete] == 1:
+            input.append(1)
+        else:
+            input.append(0)
+
+        # A droite
+        if dead4sure or yTete == BOARD_LENGTH - 1 or board[xTete][yTete + 1] == 1:
+            input.append(1)
+        else:
+            input.append(0)
+
+        # En bas
+        if dead4sure or xTete == BOARD_LENGTH - 1 or board[xTete + 1][yTete] == 1:
+            input.append(1)
+        else:
+            input.append(0)
+
+    # Si dirige vers le bas
+    if currentDirection == DIRECTIONS.Down:
+
+        # Création des 4 inputs
+        if (XRelatif < 0 and YRelatif < 0):
+            input.extend([0, 0, distance, 0])
+        elif (XRelatif < 0 and YRelatif == 0):
+            input += [0, 0, distance, distance]
+        elif (XRelatif < 0 and YRelatif > 0):
+            input.extend([0, 0, 0, distance])
+        elif (XRelatif == 0 and YRelatif > 0):
+            input.extend([distance, 0, 0, distance])
+        elif (XRelatif > 0 and YRelatif > 0):
+            input.extend([distance, 0, 0, 0])
+        elif (XRelatif > 0 and YRelatif == 0):
+            input += [distance, distance, 0, 0]
+        elif (XRelatif > 0 and YRelatif < 0):
+            input.extend([0, distance, 0, 0])
+        elif (XRelatif == 0 and YRelatif < 0):
+            input += [0, distance, distance, 0]
+        elif (XRelatif == 0 and YRelatif == 0):
+            input.extend([distance, distance, distance, distance])
+
+        # Création des 3 inputs
+
+        # A droite
+        if dead4sure or yTete == BOARD_LENGTH - 1 or board[xTete][yTete + 1] == 1:
+            input.append(1)
+        else:
+            input.append(0)
+
+        # En bas
+        if dead4sure or xTete == BOARD_LENGTH - 1 or board[xTete + 1][yTete] == 1:
+            input.append(1)
+        else:
+            input.append(0)
+
+        # A gauche
+        if dead4sure or yTete == 0 or board[xTete][yTete - 1] == 1:
+            input.append(1)
+        else:
+            input.append(0)
+
+    # Si dirige vers la gauche
+    if currentDirection == DIRECTIONS.Left:
+
+        # Création des 4 inputs
+        if (XRelatif < 0 and YRelatif < 0):
+            input.extend([0, distance, 0, 0])
+        elif (XRelatif < 0 and YRelatif == 0):
+            input += [0, distance, distance, 0]
+        elif (XRelatif < 0 and YRelatif > 0):
+            input.extend([0, 0, distance, 0])
+        elif (XRelatif == 0 and YRelatif > 0):
+            input += [0, 0, distance, distance]
+        elif (XRelatif > 0 and YRelatif > 0):
+            input.extend([0, 0, 0, distance])
+        elif (XRelatif > 0 and YRelatif == 0):
+            input.extend([distance, 0, 0, distance])
+        elif (XRelatif > 0 and YRelatif < 0):
+            input.extend([distance, 0, 0, 0])
+        elif (XRelatif == 0 and YRelatif < 0):
+            input += [distance, distance, 0, 0]
+        elif (XRelatif == 0 and YRelatif == 0):
+            input.extend([distance, distance, distance, distance])
+
+            # Création des 3 inputs
+
+            # En bas
+        if dead4sure or xTete == BOARD_LENGTH - 1 or board[xTete + 1][yTete] == 1:
+            input.append(1)
+        else:
+            input.append(0)
+
+        # A gauche
+        if dead4sure or yTete == 0 or board[xTete][yTete - 1] == 1:
+            input.append(1)
+        else:
+            input.append(0)
+
+        # En haut
+        if dead4sure or xTete == 0 or board[xTete - 1][yTete] == 1:
+            input.append(1)
+        else:
+            input.append(0)
+    return input
+
+
 # Crée 7 inputs :
 # 4 inputs correspondants à la présence de la pomme dans les 4 carrés autour du snake
 # 3 inputs correspondants à la distance tête snake <-> obstacle à G, devant et à D
 def mappingCarre(board, snake, head):
     input = []
 
-    # Cherche les coordonnees de la pomme
     # Cherche les coordonnees de la pomme
     (X, Y) = next(((i, row.index(2)) for i, row in enumerate(board) if 2 in row), (0, 0))
     XRelatif = head[0] - X  # X Relatif
@@ -425,7 +610,6 @@ def mappingCarre(board, snake, head):
             if not trouve:
                 distance = 1 - (abs(y - yTete) / BOARD_LENGTH)
                 input.append(distance)
-
     return input
 
 
@@ -847,14 +1031,16 @@ def end_cond(etat, action):
         return True
     return False
 
-
-def enregistrement(m):
-
+def enregistrementModel(m):
+    saveOnDisk("ratioSingle", RATIOSSINGLE)
     model_json = m.to_json()
     with open("model.json", "w") as json_file:
         json_file.write(model_json)
     # serialize weights to HDF5
     m.save_weights("model.h5")
+
+def enregistrement():
+
 
     PASAVANTMORT.append(PAS[0]/(LOST[0]+1))
     LOSSES.append(LOSS[0])
@@ -895,8 +1081,9 @@ def one_player(screen):
     food = find_food(spots)
     spots[food[0]][food[1]]=2
     snake = Snake()
+    ratioSingle=[0]
     currentHead = snake.deque[snake.deque.__len__() - 1]
-    snake.state = mappingCarre(spots, snake, currentHead)
+    snake.state = encoreUnMapping(spots, snake, currentHead)
     #snake.rewardMatrix = snake.initializeRewardMatrix(food)
 
     while True:
@@ -930,7 +1117,7 @@ def one_player(screen):
         next_head = move(snake)
         #print("Je serais en "+str(next_head))
 
-        snake.state = mappingCarre(spots, snake, next_head)
+        snake.state = encoreUnMapping(spots, snake, next_head)
         #new_state = snake.state
 
         "EXP REPLAY"
@@ -945,7 +1132,7 @@ def one_player(screen):
             snake.experience.pop(random.randrange(lenExpMax))
 
         PAS[0]+=1
-        if(COMPTEUR[0]%step==0 and COMPTEUR[0]!=0):
+        if(False):
             x_train=[]
             y_train=[]
             lenExp = len(snake.experience)
@@ -969,22 +1156,28 @@ def one_player(screen):
                     #print("L'état suivant est " + str(sample[3]))
                     #print("La récompense est " + str(sample[2]))
                     #print("Après Q vaut : " + str(Qmodif))
-            history = model.fit(np.array(x_train), np.array(y_train), epochs=epochs, batch_size=batch, verbose =0)
-            loss=np.mean(history.history['loss'])
 
-            LOSS[0]=loss
 
-            enregistrement(model)
+            #history = model.fit(np.array(x_train), np.array(y_train), epochs=epochs, batch_size=batch, verbose =0)
+            #loss=np.mean(history.history['loss'])
+
+            #LOSS[0]=loss
+            #enregistrement()
+
 
             # ON ARRETE QUAND C BON
-            if(loss<1 or COMPTEUR[0]==END):
+            if(COMPTEUR[0]==END):
                 print("Fin de l'exécution !")
                 os._exit(0)
 
         COMPTEUR[0]+=1
         "PRISE DE DECISION"
         if (end_condition(spots, next_head)):
+            print(ratioSingle)
+            if(ratioSingle[0]>max(RATIOSSINGLE)):
 
+                RATIOSSINGLE.append(ratioSingle[0])
+                #enregistrementModel(model)
             LOST[0]+=1
             return snake.tailmax
 
@@ -993,7 +1186,8 @@ def one_player(screen):
 
         if is_food(spots, next_head):
             FOUND[0]+=1
-            snake.tailmax += 4
+            ratioSingle[0] += 1
+            snake.tailmax += 1
             food = find_food(spots)
 
         snake.deque.append(next_head)
@@ -1012,223 +1206,6 @@ def one_player(screen):
             spots = update_board(screen, [snake], food)
 
 
-"VERSIO DEUX JOUEURS (pour l instant osef)"
-
-
-def two_player(screen):
-    clock = pygame.time.Clock()
-    spots = make_board()
-
-    snakes = [Snake(DIRECTIONS.Right, (0, 0, RED), RED), Snake(DIRECTIONS.Right, (5, 5, BLUE), BLUE)]
-    for snake in snakes:
-        point = snake.deque.pop()
-        spots[point[0]][point[1]] = 1
-        snake.deque.append(point)
-    food = find_food(spots)
-
-    while True:
-        clock.tick(speed)
-        done = False
-        events = pygame.event.get()
-        for event in events:
-            if event.type == pygame.QUIT:
-                done = True
-                break
-        if done:
-            return False
-        snakes[0].populate_nextDir(events, "arrows")
-        snakes[1].populate_nextDir(events, "wasd")
-
-        for snake in snakes:
-            next_head = move(snake)[0]
-            if (end_condition(spots, next_head)):
-                return snake.tailmax
-
-            if is_food(spots, next_head):
-                snake.tailmax += 4
-                food = find_food(spots)
-
-            snake.deque.append(next_head)
-
-            if len(snake.deque) > snake.tailmax:
-                snake.deque.popleft()
-
-        screen.fill(BLACK)
-
-        spots = update_board(screen, snakes, food)
-
-        pygame.display.update()
-
-
-"ALORS LA..."
-
-
-def network_nextDir(events, net_id):
-    # assume "arrows"
-    enc_dir = ""
-    for event in events:
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_UP:
-                enc_dir += net_id + "u"
-            elif event.key == pygame.K_DOWN:
-                enc_dir += net_id + "d"
-            elif event.key == pygame.K_RIGHT:
-                enc_dir += net_id + "r"
-            elif event.key == pygame.K_LEFT:
-                enc_dir += net_id + "l"
-    return enc_dir
-
-
-"... CA FAIT DES TRUCS"
-
-
-def encode_deltas(delta_str):
-    # delta_str is in the form
-    # "(15 23 bk)(22 12 fo)(10 11 rm)"
-    deltas = deque()
-    state = "open"
-    while len(delta_str) != 0:
-        if state == "open":
-            encoded_delta = ["fx", 0, 0, "fx"]
-            delta_str = delta_str[1:]
-            on_num = 1
-            store_val = ""
-            state = "num"
-        if state == "num":
-            if delta_str[0] == " ":
-                delta_str = delta_str[1:]
-                encoded_delta[on_num] = int(store_val)
-                store_val = ""
-                on_num += 1
-                if on_num > 2:
-                    state = "color"
-            else:
-                store_val += delta_str[0]
-                delta_str = delta_str[1:]
-        if state == "color":
-            if delta_str[0] == ")":
-                if store_val == "rm":
-                    encoded_delta[0] = "d"
-                elif store_val == "fo":
-                    encoded_delta[0] = "a"
-                    encoded_delta[3] = "fo"
-                else:
-                    encoded_delta[0] = "a"
-                    encoded_delta[3] = store_val
-                delta_str = delta_str[1:]
-                state = "open"
-                deltas.appendleft(encoded_delta)
-            else:
-                store_val += delta_str[0]
-                delta_str = delta_str[1:]
-    return deltas
-
-
-"AUCUNE FUCKING IDEE DE CE QUE CA FAIT (CA TRADUIT LES ACTIONS DU JOUEUR EN GROS, OSEF JE CROIS)"
-
-
-def client(screen):
-    HOST, PORT = "samertm.com", 9999
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    s.connect((HOST, PORT))
-    net_id = s.recv(1024)
-    net_id = net_id.decode("utf-8")
-    fake_snake = Snake()
-    screen.fill(BLACK)
-    pygame.display.update()
-
-    while True:
-        done = False
-        events = pygame.event.get()
-        for event in events:
-            if event.type == pygame.QUIT:
-                done = True
-        if done:
-            return False
-        send_data = network_nextDir(events, net_id)
-        if send_data != "":
-            s.sendall(send_data.encode("utf-8"))
-
-        read, _write, _except = select.select([s], [], [])
-        recv_data = ""
-
-        if len(read) != 0:
-            recv_data = read[0].recv(1024)
-            recv_data = recv_data.decode("utf-8")
-            if recv_data == "":
-                break
-            deltas = encode_deltas(recv_data)
-            change_list = update_board_delta(screen, deltas)
-            pygame.display.update()
-
-
-"DEINITION TABLEAU GAMEOVER"
-
-
-def game_over(screen, eaten):
-    message1 = "You ate %d foods" % eaten
-    message2 = "Press enter to play again, esc to quit."
-    game_over_message1 = pygame.font.Font(None, 30).render(message1, True, BLACK)
-    game_over_message2 = pygame.font.Font(None, 30).render(message2, True, BLACK)
-
-    overlay = pygame.Surface((BOARD_LENGTH * OFFSET, BOARD_LENGTH * OFFSET))
-    overlay.fill((84, 84, 84))
-    overlay.set_alpha(150)
-    screen.blit(overlay, (0, 0))
-
-    screen.blit(game_over_message1, (35, 35))
-    screen.blit(game_over_message2, (65, 65))
-    game_over_message1 = pygame.font.Font(None, 30).render(message1, True, WHITE)
-    game_over_message2 = pygame.font.Font(None, 30).render(message2, True, WHITE)
-    screen.blit(game_over_message1, (32, 32))
-    screen.blit(game_over_message2, (62, 62))
-
-    pygame.display.update()
-
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                return False
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    return False
-                if event.key == pygame.K_RETURN:
-                    return True
-
-
-def leaderboard(screen):
-    font = pygame.font.Font(None, 30)
-    screen.fill(BLACK)
-    try:
-        with open("leaderboard.txt") as f:
-            lines = f.readlines()
-            titlemessage = font.render("Leaderboard", True, WHITE)
-            screen.blit(titlemessage, (32, 32))
-            dist = 64
-            for line in lines:
-                delimited = line.split(",")
-                delimited[1] = delimited[1].strip()
-                message = "{0[0]:.<10}{0[1]:.>10}".format(delimited)
-                rendered_message = font.render(message, True, WHITE)
-                screen.blit(rendered_message, (32, dist))
-                dist += 32
-    except IOError:
-        message = "Nothing on the leaderboard yet."
-        rendered_message = font.render(message, True, WHITE)
-        screen.blit(rendered_message, (32, 32))
-
-    pygame.display.update()
-
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                return False
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    return False
-                if event.key == pygame.K_RETURN:
-                    return True
 
 
 def main():
@@ -1246,10 +1223,7 @@ def main():
             pick = 1
 
         options = {0: quit,
-                   1: one_player,
-                   2: two_player,
-                   3: leaderboard,
-                   4: client}
+                   1: one_player}
         now = options[pick](screen)
         if now == False:
             break
