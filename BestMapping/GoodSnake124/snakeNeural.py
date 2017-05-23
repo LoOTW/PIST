@@ -85,9 +85,9 @@ speed = 500
 BOARD_LENGTH = 32
 OFFSET = 16
 WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-RED = (255, 0, 0)
-BLUE = (0, 0, 255)
+BLACK = (12, 35 , 64)
+RED = (164, 210, 51)
+BLUE = (0, 184, 222)
 EXP = []
 
 COMPTEUR = [0]
@@ -885,7 +885,6 @@ def update_board(screen, snakes, food):
             for coord in snake.deque:
                 spots[coord[0]][coord[1]] = 1
     return spots
-
 
 def get_color(s):
     if s == "bk":
